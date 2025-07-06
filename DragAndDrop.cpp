@@ -19,6 +19,30 @@ bool selectionRectActive = false;
 float selectionRectStartX = 0.0f, selectionRectStartY = 0.0f;
 float selectionRectEndX = 0.0f, selectionRectEndY = 0.0f;
 
+void drawSelectionRect(SDL_Renderer* renderer) {
+    if (selectionRectActive) {
+        SDL_GetMouseState(&selectionRectEndX, &selectionRectEndY);
+        const float x = std::min(selectionRectStartX, selectionRectEndX);
+        const float y = std::min(selectionRectStartY, selectionRectEndY);
+        const float w = std::abs(selectionRectEndX - selectionRectStartX);
+        const float h = std::abs(selectionRectEndY - selectionRectStartY);
+
+        SDL_FRect selectionRect = {x, y, w, h};
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 85, 136, 255, 100); // semi-transparent blue
+        SDL_RenderFillRect(renderer, &selectionRect);
+
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+        SDL_SetRenderDrawColor(renderer, 85, 136, 255, 255);
+        for (int i = 0; i < 2; ++i) {
+            SDL_FRect borderRect = {x - static_cast<float>(i), y - static_cast<float>(i), w + 2 * static_cast<float>(i), h + 2 * static_cast<float>(i)};
+            SDL_RenderRect(renderer, &borderRect);
+        }
+
+        SDL_Log("Selection rectangle from (%f, %f) to (%f, %f)", selectionRectStartX, selectionRectStartY,
+                selectionRectEndX, selectionRectEndY);
+    }
+}
 
 /**
  * @brief Checks for Ctrl key presses to correctly handle multiple selections.
@@ -74,7 +98,8 @@ void handleDragAndDrop(const SDL_Event* event, SDL_Renderer* renderer) {
                         clickedObject->selected = true;
                     }
                     clickedObject->selected = true;
-                } else {
+                }
+                else {
                     clickedObjectPrevState = clickedObject->selected;
                     clickedObject->selected = true;
                 }
@@ -98,33 +123,18 @@ void handleDragAndDrop(const SDL_Event* event, SDL_Renderer* renderer) {
             }
             selectedObjects.clear();
         }
-        // if (!hit && event->button.button == SDL_BUTTON_LEFT) {
-        //     SDL_Log("Start selection rectangle at (%f, %f)", mouseX, mouseY);
-        //     selectionRectStartX = mouseX;
-        //     selectionRectStartY = mouseY;
-        //     selectionRectActive = true;
-        //     selectionRectEndX = mouseX;
-        //     selectionRectEndY = mouseY;
-        // }
+        if (!hit && event->button.button == SDL_BUTTON_LEFT) {
+            SDL_Log("Start selection rectangle at (%f, %f)", mouseX, mouseY);
+            selectionRectStartX = mouseX;
+            selectionRectStartY = mouseY;
+            selectionRectActive = true;
+            selectionRectEndX = mouseX;
+            selectionRectEndY = mouseY;
+        }
         break;
     }
     case SDL_EVENT_MOUSE_MOTION:
-        if (selectionRectActive) {
-            SDL_GetMouseState(&selectionRectEndX, &selectionRectEndY);
-            float x = std::min(selectionRectStartX, selectionRectEndX);
-            float y = std::min(selectionRectStartY, selectionRectEndY);
-            float w = std::abs(selectionRectEndX - selectionRectStartX);
-            float h = std::abs(selectionRectEndY - selectionRectStartY);
-
-            SDL_FRect selectionRect = {x, y, w, h};
-            SDL_SetRenderDrawColor(renderer, 85, 136, 255, 100); // semi-transparent blue
-            SDL_RenderFillRect(renderer, &selectionRect);
-            SDL_SetRenderDrawColor(renderer, 85, 136, 255, 255); // solid border
-            SDL_RenderRect(renderer, &selectionRect);
-            SDL_Log("Selection rectangle from (%f, %f) to (%f, %f)", selectionRectStartX, selectionRectStartY,
-                    selectionRectEndX, selectionRectEndY);
-        }
-        else {
+        if (!selectionRectActive) {
             for (const auto obj : selectedObjects) {
                 if (obj->dragging) {
                     obj->moved = true;
@@ -166,24 +176,28 @@ void handleDragAndDrop(const SDL_Event* event, SDL_Renderer* renderer) {
                     if (selectedObjects.size() == 1) { // Only one object is selected
                         SDL_Log("Only one object is selected.");
                         // if (clickedObject->moved) {
-                            clickedObject->selected = !clickedObjectPrevState;
+                        clickedObject->selected = !clickedObjectPrevState;
                         // }
-                    } else {
+                    }
+                    else {
                         SDL_Log("Multiple objects are selected.");
                         for (auto obj : selectedObjects) {
                             obj->selected = false;
                         }
                         clickedObject->selected = true;
                     }
-                } else { // Ctrl is pressed
+                }
+                else { // Ctrl is pressed
                     SDL_Log("Ctrl was pressed.");
                     clickedObject->selected = !clickedObjectPrevState;
                 }
-            } else { // Long click
+            }
+            else { // Long click
                 SDL_Log("Long click detected.");
                 if (!ctrlPressed) { // Ctrl is not pressed
                     // Keep the selected objects selected
-                } else { // Ctrl is pressed
+                }
+                else { // Ctrl is pressed
                     // Keep the selected objects selected
                 }
             }
@@ -192,12 +206,15 @@ void handleDragAndDrop(const SDL_Event* event, SDL_Renderer* renderer) {
             for (const auto obj : selectedObjects) {
                 obj->dragging = false;
             }
-        } else if (!hit && !ctrlPressed) {
+        }
+        else if ((!hit && !ctrlPressed) && !selectionRectActive) {
             for (const auto obj : objects) {
                 obj->selected = false;
                 obj->dragging = false;
                 obj->moved = false;
             }
+        } else if (selectionRectActive) {
+            selectionRectActive = false;
         }
         break;
     default:

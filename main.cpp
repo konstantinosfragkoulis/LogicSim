@@ -1,5 +1,6 @@
 #define SDL_MAIN_USE_CALLBACKS 1
 
+#include <chrono>
 #include <cstdio>
 #include <vector>
 #include <SDL3/SDL.h>
@@ -13,6 +14,9 @@ SDL_Renderer* renderer = nullptr;
 
 std::vector<Object*> objects;
 std::vector<Object*> selectedObjects;
+
+Uint64 lastFrameTicks = 0;
+const Uint64 targetFrameTime = 1000 / 120; // Target frame time for 120 FPS
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     SDL_SetAppMetadata("Logic Sim", "1.0", "com.kfragkoulis.logicsim");
@@ -55,12 +59,23 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 
     SDL_RenderClear(renderer);
 
+    // Draw all objects
     for (const auto obj : objects) {
         obj->render(renderer);
     }
+    drawSelectionRect(renderer);
 
     SDL_RenderPresent(renderer);
 
+    // Limit frame rate to 120 FPS
+    Uint64 now = SDL_GetTicks();
+    if (lastFrameTicks != 0) {
+        Uint64 elapsed = now - lastFrameTicks;
+        if (elapsed < targetFrameTime) {
+            SDL_Delay(targetFrameTime - elapsed);
+        }
+    }
+    lastFrameTicks = SDL_GetTicks();
 
     return SDL_APP_CONTINUE;
 }
