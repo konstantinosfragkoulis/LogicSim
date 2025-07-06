@@ -27,6 +27,7 @@ public:
 
     bool selected;
     bool dragging;
+    bool moved;
     double offsetX, offsetY;
 
     explicit Object(const double x = 0.0, const double y = 0.0, const double rotation = 1.0, const double scale = 1.0) {
@@ -36,6 +37,7 @@ public:
         this->scale = scale;
         selected = false;
         dragging = false;
+        moved = false;
         offsetX = 0.0;
         offsetY = 0.0;
     }

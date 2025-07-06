@@ -29,14 +29,18 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
 
     const auto btn1 = new Button();
     const auto btn2 = new Button();
+    const auto btn3 = new Button();
+    const auto btn4 = new Button();
     objects.push_back(btn1);
     objects.push_back(btn2);
+    objects.push_back(btn3);
+    objects.push_back(btn4);
 
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
-    handleDragAndDrop(event);
+    handleDragAndDrop(event, renderer);
     switch (event->type) {
     case SDL_EVENT_QUIT:
         return SDL_APP_SUCCESS;

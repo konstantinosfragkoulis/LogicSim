@@ -7,6 +7,6 @@
 
 #include <SDL3/SDL.h>
 
-extern void handleDragAndDrop(const SDL_Event* event);
+extern void handleDragAndDrop(const SDL_Event* event, SDL_Renderer* renderer);
 
 #endif //DRAGANDDROP_HPP
