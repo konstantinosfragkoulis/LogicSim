@@ -1,0 +1,12 @@
+//
+// Created by konstantinos on 7/6/25.
+//
+
+#ifndef DRAGANDDROP_HPP
+#define DRAGANDDROP_HPP
+
+#include <SDL3/SDL.h>
+
+extern void handleDragAndDrop(const SDL_Event* event);
+
+#endif //DRAGANDDROP_HPP

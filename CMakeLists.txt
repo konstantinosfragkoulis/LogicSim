@@ -10,6 +10,7 @@ add_executable(LogicSim main.cpp
         Simulator.hpp
         Simulator.cpp
         DragAndDrop.cpp
-        DragAndDrop.hpp)
+        DragAndDrop.hpp
+)
 
 target_link_libraries(LogicSim PRIVATE SDL3::SDL3)
