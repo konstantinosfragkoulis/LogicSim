@@ -107,21 +107,21 @@ Gate::~Gate() {
 bool Gate::evaluate() {
     switch (type) {
     case BUF:
-        return inputPins[0];
+        return inputPins[0]->evaluate();
     case NOT:
-        return !inputPins[0];
+        return !inputPins[0]->evaluate();
     case AND:
-        return inputPins[0] && inputPins[1];
+        return inputPins[0]->evaluate() && inputPins[1]->evaluate();
     case OR:
-        return inputPins[0] || inputPins[1];
+        return inputPins[0]->evaluate() || inputPins[1]->evaluate();
     case NAND:
-        return !(inputPins[0] && inputPins[1]);
+        return !(inputPins[0]->evaluate() && inputPins[1]->evaluate());
     case NOR:
-        return !(inputPins[0] || inputPins[1]);
+        return !(inputPins[0]->evaluate() || inputPins[1]->evaluate());
     case XOR:
-        return inputPins[0] != inputPins[1];
+        return inputPins[0]->evaluate() != inputPins[1]->evaluate();
     case XNOR:
-        return inputPins[0] == inputPins[1];
+        return inputPins[0]->evaluate() == inputPins[1]->evaluate();
     default:
         return false;
     }
