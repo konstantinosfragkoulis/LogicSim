@@ -84,8 +84,10 @@ void handleDragAndDrop(const SDL_Event* event, SDL_Renderer* renderer) {
 
         for (auto it = objects.rbegin(); it != objects.rend(); ++it) {
             Object* obj = *it;
-            if (mouseX >= obj->x && mouseX <= obj->x + 50 * obj->scale &&
-                mouseY >= obj->y && mouseY <= obj->y + 50 * obj->scale) {
+            // Bounds checking
+            SDL_Log("Object size (%f, %f)", obj->width, obj->height);
+            if (mouseX >= obj->x && mouseX <= obj->x + obj->width * obj->scale &&
+                mouseY >= obj->y && mouseY <= obj->y + obj->height * obj->scale) {
                 hit = true;
                 clickedObject = obj;
                 if (!ctrlPressed) {
@@ -157,8 +159,9 @@ void handleDragAndDrop(const SDL_Event* event, SDL_Renderer* renderer) {
 
             for (auto obj : objects) {
                 SDL_Log("Object at (%f, %f) with scale %f", obj->x, obj->y, obj->scale);
-                if (obj->x >= minX && obj->x + 50 * obj->scale <= maxX &&
-                    obj->y >= minY && obj->y + 50 * obj->scale <= maxY) {
+                // Bounds checking
+                if (obj->x >= minX && obj->x + obj->width * obj->scale <= maxX &&
+                    obj->y >= minY && obj->y + obj->height * obj->scale <= maxY) {
                     SDL_Log("Selected object");
                     obj->selected = true;
                     selectedObjects.push_back(obj);
@@ -175,9 +178,15 @@ void handleDragAndDrop(const SDL_Event* event, SDL_Renderer* renderer) {
                     SDL_Log("Ctrl was not pressed.");
                     if (selectedObjects.size() == 1) { // Only one object is selected
                         SDL_Log("Only one object is selected.");
-                        // if (clickedObject->moved) {
-                        clickedObject->selected = !clickedObjectPrevState;
-                        // }
+                        if (auto *btn = dynamic_cast<Button*>(clickedObject)) {
+                            SDL_Log("Clicked on a button.");
+                            btn->isPressed = !btn->isPressed;
+                            btn->selected = false;
+                        } else {
+                            // if (clickedObject->moved) {
+                            clickedObject->selected = !clickedObjectPrevState;
+                            // }
+                        }
                     }
                     else {
                         SDL_Log("Multiple objects are selected.");

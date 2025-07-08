@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(SDL3 REQUIRED)
+find_package(SDL3_image REQUIRED)
 
 add_executable(LogicSim main.cpp
         Simulator.hpp
@@ -13,4 +14,4 @@ add_executable(LogicSim main.cpp
         DragAndDrop.hpp
 )
 
-target_link_libraries(LogicSim PRIVATE SDL3::SDL3)
+target_link_libraries(LogicSim PRIVATE SDL3::SDL3 SDL3_image::SDL3_image)
