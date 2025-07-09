@@ -69,7 +69,7 @@ void checkCtrlPress(const SDL_Event* event) {
  * @brief Handles drag and drop events for objects in the simulation.
  * @param event Pointer to the SDL event to handle drag and drop actions.
  */
-void handleDragAndDrop(const SDL_Event* event, SDL_Renderer* renderer) {
+void handleDragAndDrop(const SDL_Event* event) {
     switch (event->type) {
     case SDL_EVENT_KEY_DOWN:
     case SDL_EVENT_KEY_UP:
@@ -93,7 +93,7 @@ void handleDragAndDrop(const SDL_Event* event, SDL_Renderer* renderer) {
                 if (!ctrlPressed) {
                     clickedObjectPrevState = clickedObject->selected;
                     if (!clickedObject->selected) {
-                        for (auto _obj : objects) {
+                        for (const auto _obj : objects) {
                             _obj->selected = false;
                             _obj->dragging = false;
                         }
@@ -183,14 +183,12 @@ void handleDragAndDrop(const SDL_Event* event, SDL_Renderer* renderer) {
                             btn->isPressed = !btn->isPressed;
                             btn->selected = false;
                         } else {
-                            // if (clickedObject->moved) {
                             clickedObject->selected = !clickedObjectPrevState;
-                            // }
                         }
                     }
                     else {
                         SDL_Log("Multiple objects are selected.");
-                        for (auto obj : selectedObjects) {
+                        for (const auto obj : selectedObjects) {
                             obj->selected = false;
                         }
                         clickedObject->selected = true;

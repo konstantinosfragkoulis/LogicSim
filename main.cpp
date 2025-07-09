@@ -17,7 +17,7 @@ std::vector<Object*> objects;
 std::vector<Object*> selectedObjects;
 
 Uint64 lastFrameTicks = 0;
-const Uint64 targetFrameTime = 1000 / 120; // Target frame time for 120 FPS
+constexpr Uint64 targetFrameTime = 1000 / 120; // Target frame time for 120 FPS
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     SDL_SetAppMetadata("Logic Sim", "1.0", "com.kfragkoulis.logicsim");
@@ -61,7 +61,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
 }
 
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
-    handleDragAndDrop(event, renderer);
+    handleDragAndDrop(event);
     switch (event->type) {
     case SDL_EVENT_QUIT:
         return SDL_APP_SUCCESS;
