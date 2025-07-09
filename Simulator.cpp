@@ -5,6 +5,8 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include "Simulator.hpp"
+
+#include <cmath>
 #include <string>
 
 std::string GateTypeToString(const GateType type) {
@@ -21,7 +23,7 @@ std::string GateTypeToString(const GateType type) {
     }
 }
 
-Button::Button(SDL_Renderer* renderer, const double x, const double y) : Object(x, y, 1.0, 0.05) {
+Button::Button(SDL_Renderer* renderer, const float x, const float y) : Object(x, y, 1.0, 0.05) {
     inputPins.resize(0);
     outputPins.resize(1);
     textures.resize(2);
@@ -56,10 +58,10 @@ bool Button::evaluate() {
 void Button::render(SDL_Renderer* renderer) {
     if (selected) {
         SDL_FRect border;
-        border.x = static_cast<float>(x) - 4;
-        border.y = static_cast<float>(y) - 4;
-        border.w = static_cast<float>(width * scale) + 8;
-        border.h = static_cast<float>(height * scale) + 8;
+        border.x = x - 4;
+        border.y = y - 4;
+        border.w = width * scale + 8;
+        border.h = height * scale + 8;
 
         SDL_SetRenderDrawColor(renderer, 85, 136, 255, 255);
         SDL_RenderFillRect(renderer, &border);
@@ -71,15 +73,16 @@ void Button::render(SDL_Renderer* renderer) {
         return;
     }
 
-    SDL_FRect rect = {static_cast<float>(x), static_cast<float>(y), 0, 0};
+    SDL_FRect rect = {x, y, 0, 0};
     SDL_GetTextureSize(texture, &rect.w, &rect.h);
-    rect.w *= static_cast<float>(scale);
-    rect.h *= static_cast<float>(scale);
+    rect.w *= scale;
+    rect.h *= scale;
 
     SDL_RenderTexture(renderer, texture, nullptr, &rect);
 }
 
-Gate::Gate(SDL_Renderer* renderer, const GateType type, const double x, const double y) : Object(x, y, 1.0, 0.05), type(type) {
+Gate::Gate(SDL_Renderer* renderer, const GateType type, const float x, const float y) : Object(x, y, 1.0, 0.05),
+    type(type) {
     inputPins.resize((type == NOT || type == BUF) ? 1 : 2);
     outputPins.resize(1);
     textures.resize(1);
@@ -97,7 +100,7 @@ Gate::Gate(SDL_Renderer* renderer, const GateType type, const double x, const do
 }
 
 Gate::~Gate() {
-    for (auto texture : textures) {
+    for (const auto texture : textures) {
         if (texture) {
             SDL_DestroyTexture(texture);
         }
@@ -130,10 +133,10 @@ bool Gate::evaluate() {
 void Gate::render(SDL_Renderer* renderer) {
     if (selected) {
         SDL_FRect border;
-        border.x = static_cast<float>(x) + 5;
-        border.y = static_cast<float>(y) - 2;
-        border.w = static_cast<float>(width * scale) - 10;
-        border.h = static_cast<float>(height * scale) + 4;
+        border.x = x + 5;
+        border.y = y - 2;
+        border.w = width * scale - 10;
+        border.h = height * scale + 4;
 
         SDL_SetRenderDrawColor(renderer, 85, 136, 255, 255);
         SDL_RenderFillRect(renderer, &border);
@@ -143,11 +146,38 @@ void Gate::render(SDL_Renderer* renderer) {
         return;
     }
 
-    SDL_FRect rect = {static_cast<float>(x), static_cast<float>(y), 0, 0};
+    SDL_FRect rect = {x, y, 0, 0};
     SDL_GetTextureSize(textures[0], &rect.w, &rect.h);
-    rect.w *= static_cast<float>(scale);
-    rect.h *= static_cast<float>(scale);
+    rect.w *= scale;
+    rect.h *= scale;
 
     SDL_RenderTexture(renderer, textures[0], nullptr, &rect);
+}
 
+Wire::Wire(SDL_Renderer* renderer, const float x, const float y) : Object(x, y, 1.0, 1.0) {
+    inputPins.resize(1);
+    outputPins.resize(1);
+    width = 100;
+    height = 5;
+    rotation = 0;
+}
+
+Wire::~Wire() {
+    for (const auto texture : textures) {
+        if (texture) {
+            SDL_DestroyTexture(texture);
+        }
+    }
+}
+
+bool Wire::evaluate() {
+    return inputPins[0]->evaluate();
+}
+
+void Wire::render(SDL_Renderer* renderer) {
+    SDL_Log("Rotation: %f", rotation);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+    SDL_RenderLine(renderer, x, y,
+                   width * std::cos(rotation) + x,
+                   width * std::sin(rotation) + y);
 }

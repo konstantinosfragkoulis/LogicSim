@@ -44,6 +44,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     const auto norGate = new Gate(renderer, NOR, 500, 150);
     const auto xorGate = new Gate(renderer, XOR, 600, 150);
     const auto xnorGate = new Gate(renderer, XNOR, 700, 150);
+    const auto newWire = new Wire(renderer);
     objects.push_back(btn1);
     objects.push_back(btn2);
     objects.push_back(btn3);
@@ -56,6 +57,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     objects.push_back(norGate);
     objects.push_back(xorGate);
     objects.push_back(xnorGate);
+    objects.push_back(newWire);
 
     return SDL_APP_CONTINUE;
 }

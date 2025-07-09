@@ -65,6 +65,11 @@ void checkCtrlPress(const SDL_Event* event) {
     }
 }
 
+bool isWithinObject(const auto x, const auto y, const Object* obj) {
+    return x >= obj->x && x <= obj->x + obj->width * obj->scale &&
+           y >= obj->y && y <= obj->y + obj->height * obj->scale;
+}
+
 /**
  * @brief Handles drag and drop events for objects in the simulation.
  * @param event Pointer to the SDL event to handle drag and drop actions.
@@ -86,8 +91,7 @@ void handleDragAndDrop(const SDL_Event* event) {
             Object* obj = *it;
             // Bounds checking
             SDL_Log("Object size (%f, %f)", obj->width, obj->height);
-            if (mouseX >= obj->x && mouseX <= obj->x + obj->width * obj->scale &&
-                mouseY >= obj->y && mouseY <= obj->y + obj->height * obj->scale) {
+            if (isWithinObject(mouseX, mouseY, obj)) {
                 hit = true;
                 clickedObject = obj;
                 if (!ctrlPressed) {
