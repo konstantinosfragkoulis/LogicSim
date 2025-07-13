@@ -13,6 +13,7 @@ Uint64 clickTime = 0;
 Object* clickedObject = nullptr;
 bool clickedObjectPrevState = false;
 bool hit = false;
+bool clickedPin = false;
 
 // Selection rectangle
 bool selectionRectActive = false;
@@ -66,8 +67,8 @@ void checkCtrlPress(const SDL_Event* event) {
 }
 
 bool isWithinObject(const auto x, const auto y, const Object* obj) {
-    return x >= obj->x && x <= obj->x + obj->width * obj->scale &&
-           y >= obj->y && y <= obj->y + obj->height * obj->scale;
+    return x >= obj->position.x && x <= obj->position.x + obj->width * obj->scale &&
+           y >= obj->position.y && y <= obj->position.y + obj->height * obj->scale;
 }
 
 /**
@@ -91,7 +92,19 @@ void handleDragAndDrop(const SDL_Event* event) {
             Object* obj = *it;
             // Bounds checking
             SDL_Log("Object size (%f, %f)", obj->width, obj->height);
-            if (isWithinObject(mouseX, mouseY, obj)) {
+            // Check for pins
+            // This assumes that the object is not rotated.
+            for (auto pin : obj->inputPinPositions) {
+                SDL_Log("Checking input pin at (%f, %f)", pin.x, pin.y);
+                if (mouseX >= obj->position.x + (pin.x * obj->scale) - 20 && mouseX <= obj->position.x + (pin.x * obj->
+                        scale) + 20 &&
+                    mouseY >= obj->position.y + (pin.y * obj->scale) - 20 && mouseY <= obj->position.y + (pin.y * obj->
+                        scale) + 20) {
+                    SDL_Log("Grabbed pin");
+                    clickedPin = true;
+                        }
+            }
+            if (!clickedPin && isWithinObject(mouseX, mouseY, obj)) {
                 hit = true;
                 clickedObject = obj;
                 if (!ctrlPressed) {
@@ -116,8 +129,8 @@ void handleDragAndDrop(const SDL_Event* event) {
                     if (_obj->selected) {
                         selectedObjects.push_back(_obj);
                         _obj->dragging = true;
-                        _obj->offsetX = mouseX - _obj->x;
-                        _obj->offsetY = mouseY - _obj->y;
+                        _obj->offsetX = mouseX - _obj->position.x;
+                        _obj->offsetY = mouseY - _obj->position.y;
                     }
                 }
                 break;
@@ -144,8 +157,8 @@ void handleDragAndDrop(const SDL_Event* event) {
             for (const auto obj : selectedObjects) {
                 if (obj->dragging) {
                     obj->moved = true;
-                    obj->x = event->motion.x - obj->offsetX;
-                    obj->y = event->motion.y - obj->offsetY;
+                    obj->position.x = event->motion.x - obj->offsetX;
+                    obj->position.y = event->motion.y - obj->offsetY;
                 }
             }
         }
@@ -162,10 +175,10 @@ void handleDragAndDrop(const SDL_Event* event) {
             const float maxY = std::max(selectionRectStartY, selectionRectEndY);
 
             for (auto obj : objects) {
-                SDL_Log("Object at (%f, %f) with scale %f", obj->x, obj->y, obj->scale);
+                SDL_Log("Object at (%f, %f) with scale %f", obj->position.x, obj->position.y, obj->scale);
                 // Bounds checking
-                if (obj->x >= minX && obj->x + obj->width * obj->scale <= maxX &&
-                    obj->y >= minY && obj->y + obj->height * obj->scale <= maxY) {
+                if (obj->position.x >= minX && obj->position.x + obj->width * obj->scale <= maxX &&
+                    obj->position.y >= minY && obj->position.y + obj->height * obj->scale <= maxY) {
                     SDL_Log("Selected object");
                     obj->selected = true;
                     selectedObjects.push_back(obj);
@@ -184,7 +197,7 @@ void handleDragAndDrop(const SDL_Event* event) {
                         SDL_Log("Only one object is selected.");
                         if (auto *btn = dynamic_cast<Button*>(clickedObject)) {
                             SDL_Log("Clicked on a button.");
-                            btn->isPressed = !btn->isPressed;
+                            btn->state = !btn->state;
                             btn->selected = false;
                         } else {
                             clickedObject->selected = !clickedObjectPrevState;

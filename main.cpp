@@ -15,6 +15,7 @@ SDL_Renderer* renderer = nullptr;
 
 std::vector<Object*> objects;
 std::vector<Object*> selectedObjects;
+std::vector<Object*> outputObjects;
 
 Uint64 lastFrameTicks = 0;
 constexpr Uint64 targetFrameTime = 1000 / 120; // Target frame time for 120 FPS
@@ -45,6 +46,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     const auto xorGate = new Gate(renderer, XOR, 600, 150);
     const auto xnorGate = new Gate(renderer, XNOR, 700, 150);
     const auto newWire = new Wire(renderer);
+    const auto led1 = new Led(renderer, 400, 100);
+    const auto led2 = new Led(renderer, 500, 100);
     objects.push_back(btn1);
     objects.push_back(btn2);
     objects.push_back(btn3);
@@ -58,6 +61,18 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     objects.push_back(xorGate);
     objects.push_back(xnorGate);
     objects.push_back(newWire);
+    objects.push_back(led1);
+    objects.push_back(led2);
+
+    outputObjects.push_back(led1);
+    outputObjects.push_back(led2);
+
+    Object::connect(btn1, newWire, 0, 0);
+    Object::connect(newWire, led1, 0, 0);
+
+    Object::connect(btn2, andGate, 0, 0);
+    Object::connect(btn3, andGate, 0, 1);
+    Object::connect(andGate, led2, 0, 0);
 
     return SDL_APP_CONTINUE;
 }
@@ -73,9 +88,11 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 }
 
 SDL_AppResult SDL_AppIterate(void* appstate) {
-    SDL_SetRenderDrawColorFloat(renderer, 66.0 / 255, 67.0 / 255, 68.0 / 255, SDL_ALPHA_OPAQUE_FLOAT);
-    /* new color, full alpha. */
+    for (Object* obj : outputObjects) {
+        obj->state = obj->evaluate();
+    }
 
+    SDL_SetRenderDrawColorFloat(renderer, 66.0 / 255, 67.0 / 255, 68.0 / 255, SDL_ALPHA_OPAQUE_FLOAT);
     SDL_RenderClear(renderer);
 
     // Draw all objects
