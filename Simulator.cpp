@@ -23,13 +23,36 @@ std::string GateTypeToString(const GateType type) {
     }
 }
 
+Object::Object(const float x, const float y, const float rotation, const float scale) {
+    this->state = false;
+    this->queued = false;
+    this->pos = {x, y};
+    this->rot = rotation;
+    this->scale = scale;
+    this->w = 0.0;
+    this->h = 0.0;
+    this->selected = false;
+    this->dragging = false;
+    this->offsetX = 0.0;
+    this->offsetY = 0.0;
+
+    objects.push_back(this);
+}
+
+void Object::connect(Object* src, Object* dest, const int outputPin, const int inputPin) {
+    src->outputPins[outputPin] = dest;
+    dest->inputPins[inputPin] = src;
+    eventQueue.push(src); // Maybe it's not necessary, and we can just push dest.
+    src->queued = true;
+}
+
+
 Button::Button(SDL_Renderer* renderer, const float x, const float y) : Object(x, y, 1.0, 0.05) {
     inputPins.resize(0);
     outputPins.resize(1, nullptr);
-    inputPinPositions.resize(0);
-    outputPinPositions.resize(1);
+    inputPinPos.resize(0);
+    outputPinPos.resize(1);
     textures.resize(2);
-    state = false;
 
     const std::string path0 = "../Assets/Button0.png";
     const std::string path1 = "../Assets/Button1.png";
@@ -41,31 +64,32 @@ Button::Button(SDL_Renderer* renderer, const float x, const float y) : Object(x,
     }
     float w, h;
     SDL_GetTextureSize(textures[0], &w, &h);
-    this->width = w;
-    this->height = h;
+    this->w = w;
+    this->h = h;
 
-    outputPinPositions[0] = {20, height / 2};
+    outputPinPos[0] = {20, h / 2};
 }
 
 Button::~Button() {
-    for (auto texture : textures) {
+    for (const auto texture : textures) {
         if (texture) {
             SDL_DestroyTexture(texture);
         }
     }
 }
 
-bool Button::evaluate() {
-    return state;
+bool Button::eval() {
+    SDL_Log("Called eval() on a Button. State: %s", state ? "true" : "false");
+    return true; // Always consider the button's state as changed
 }
 
 void Button::render(SDL_Renderer* renderer) {
     if (selected) {
         SDL_FRect border;
-        border.x = position.x - 4;
-        border.y = position.y - 4;
-        border.w = width * scale + 8;
-        border.h = height * scale + 8;
+        border.x = pos.x - 4;
+        border.y = pos.y - 4;
+        border.w = w * scale + 8;
+        border.h = h * scale + 8;
 
         SDL_SetRenderDrawColor(renderer, 85, 136, 255, 255);
         SDL_RenderFillRect(renderer, &border);
@@ -77,7 +101,7 @@ void Button::render(SDL_Renderer* renderer) {
         return;
     }
 
-    SDL_FRect rect = {position.x, position.y, 0, 0};
+    SDL_FRect rect = {pos.x, pos.y, 0, 0};
     SDL_GetTextureSize(texture, &rect.w, &rect.h);
     rect.w *= scale;
     rect.h *= scale;
@@ -89,9 +113,9 @@ Gate::Gate(SDL_Renderer* renderer, const GateType type, const float x, const flo
     type(type) {
     const bool isSingleInput = (type == NOT || type == BUF);
     inputPins.resize(isSingleInput ? 1 : 2);
-    inputPinPositions.resize(isSingleInput ? 1 : 2);
+    inputPinPos.resize(isSingleInput ? 1 : 2);
     outputPins.resize(1);
-    outputPinPositions.resize(1);
+    outputPinPos.resize(1);
     textures.resize(1);
 
     const std::string path = "../Assets/" + GateTypeToString(type) + ".png";
@@ -102,15 +126,15 @@ Gate::Gate(SDL_Renderer* renderer, const GateType type, const float x, const flo
     }
     float w, h;
     SDL_GetTextureSize(textures[0], &w, &h);
-    this->width = w;
-    this->height = h;
+    this->w = w;
+    this->h = h;
     if (isSingleInput) {
-        inputPinPositions[0] = {20, height / 2};
+        inputPinPos[0] = {20, h / 2};
     } else {
-        inputPinPositions[0] = {20, height / 3};
-        inputPinPositions[1] = {20, 2* height / 3};
+        inputPinPos[0] = {20, h / 3};
+        inputPinPos[1] = {20, 2* h / 3};
     }
-    outputPinPositions[0] = {width - 20, height / 2};
+    outputPinPos[0] = {w - 20, h / 2};
 
 }
 
@@ -122,45 +146,46 @@ Gate::~Gate() {
     }
 }
 
-bool Gate::evaluate() {
+bool Gate::eval() {
+    const bool prevState = this->state;
     switch (type) {
     case BUF:
-        state = inputPins[0]->evaluate();
+        state = inputPins[0]->state;
         break;
     case NOT:
-        state = !inputPins[0]->evaluate();
+        state = !inputPins[0]->state;
         break;
     case AND:
-        state = inputPins[0]->evaluate() && inputPins[1]->evaluate();
+        state = inputPins[0]->state && inputPins[1]->state;
         break;
     case OR:
-        state = inputPins[0]->evaluate() || inputPins[1]->evaluate();
+        state = inputPins[0]->state || inputPins[1]->state;
         break;
     case NAND:
-        state = !(inputPins[0]->evaluate() && inputPins[1]->evaluate());
+        state = !(inputPins[0]->state && inputPins[1]->state);
         break;
     case NOR:
-        state = !(inputPins[0]->evaluate() || inputPins[1]->evaluate());
+        state = !(inputPins[0]->state || inputPins[1]->state);
         break;
     case XOR:
-        state = inputPins[0]->evaluate() != inputPins[1]->evaluate();
+        state = inputPins[0]->state != inputPins[1]->state;
         break;
     case XNOR:
-        state = inputPins[0]->evaluate() == inputPins[1]->evaluate();
+        state = inputPins[0]->state == inputPins[1]->state;
         break;
     default:
         return false;
     }
-    return state;
+    return (state != prevState);
 }
 
 void Gate::render(SDL_Renderer* renderer) {
     if (selected) {
         SDL_FRect border;
-        border.x = position.x + 5;
-        border.y = position.y - 2;
-        border.w = width * scale - 10;
-        border.h = height * scale + 4;
+        border.x = pos.x + 5;
+        border.y = pos.y - 2;
+        border.w = w * scale - 10;
+        border.h = h * scale + 4;
 
         SDL_SetRenderDrawColor(renderer, 85, 136, 255, 255);
         SDL_RenderFillRect(renderer, &border);
@@ -170,7 +195,7 @@ void Gate::render(SDL_Renderer* renderer) {
         return;
     }
 
-    SDL_FRect rect = {position.x, position.y, 0, 0};
+    SDL_FRect rect = {pos.x, pos.y, 0, 0};
     SDL_GetTextureSize(textures[0], &rect.w, &rect.h);
     rect.w *= scale;
     rect.h *= scale;
@@ -180,15 +205,15 @@ void Gate::render(SDL_Renderer* renderer) {
 
 Wire::Wire(SDL_Renderer* renderer, const float x, const float y) : Object(x, y, 1.0, 1.0) {
     inputPins.resize(1);
-    inputPinPositions.resize(1);
+    inputPinPos.resize(1);
     outputPins.resize(1);
-    outputPinPositions.resize(1);
-    width = 100;
-    height = 5;
-    rotation = 0;
+    outputPinPos.resize(1);
+    w = 100;
+    h = 5;
+    rot = 0;
 
-    inputPinPositions[0] = {0, height / 2};
-    outputPinPositions[0] = {width, height / 2};
+    inputPinPos[0] = {0, h / 2};
+    outputPinPos[0] = {w, h / 2};
 }
 
 Wire::~Wire() {
@@ -199,9 +224,10 @@ Wire::~Wire() {
     }
 }
 
-bool Wire::evaluate() {
-    state = inputPins[0]->evaluate();
-    return state;
+bool Wire::eval() {
+    const bool prevState = this->state;
+    state = inputPins[0]->state;
+    return (state != prevState);
 }
 
 void Wire::render(SDL_Renderer* renderer) {
@@ -211,17 +237,17 @@ void Wire::render(SDL_Renderer* renderer) {
     else {
         SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
     }
-    SDL_RenderLine(renderer, position.x, position.y,
-                   width * std::cos(rotation) + position.x,
-                   width * std::sin(rotation) + position.y);
+    SDL_RenderLine(renderer, pos.x, pos.y,
+                   w * std::cos(rot) + pos.x,
+                   w * std::sin(rot) + pos.y);
 }
 
 
 Led::Led(SDL_Renderer* renderer, const float x, float y) : Object(x, y, 1.0, 0.05) {
     inputPins.resize(1, nullptr);
-    inputPinPositions.resize(1);
+    inputPinPos.resize(1);
     outputPins.resize(0);
-    outputPinPositions.resize(0);
+    outputPinPos.resize(0);
     textures.resize(2);
     state = false;
 
@@ -235,10 +261,10 @@ Led::Led(SDL_Renderer* renderer, const float x, float y) : Object(x, y, 1.0, 0.0
     }
     float w, h;
     SDL_GetTextureSize(textures[0], &w, &h);
-    this->width = w;
-    this->height = h;
+    this->w = w;
+    this->h = h;
 
-    inputPinPositions[0] = {20, height / 2};
+    inputPinPos[0] = {20, h / 2};
 }
 
 Led::~Led() {
@@ -249,18 +275,18 @@ Led::~Led() {
     }
 }
 
-bool Led::evaluate() {
-    state = inputPins[0]->evaluate();
-    return state;
+bool Led::eval() {
+    state = inputPins[0]->state;
+    return false; // LEDs don't have output pins, so there are no other objects to notify
 }
 
 void Led::render(SDL_Renderer* renderer) {
     if (selected) {
         SDL_FRect border;
-        border.x = position.x - 4;
-        border.y = position.y - 4;
-        border.w = width * scale + 8;
-        border.h = height * scale + 8;
+        border.x = pos.x - 4;
+        border.y = pos.y - 4;
+        border.w = w * scale + 8;
+        border.h = h * scale + 8;
 
         SDL_SetRenderDrawColor(renderer, 85, 136, 255, 255);
         SDL_RenderFillRect(renderer, &border);
@@ -272,7 +298,7 @@ void Led::render(SDL_Renderer* renderer) {
         return;
     }
 
-    SDL_FRect rect = {position.x, position.y, 0, 0};
+    SDL_FRect rect = {pos.x, pos.y, 0, 0};
     SDL_GetTextureSize(texture, &rect.w, &rect.h);
     rect.w *= scale;
     rect.h *= scale;

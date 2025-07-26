@@ -67,8 +67,8 @@ void checkCtrlPress(const SDL_Event* event) {
 }
 
 bool isWithinObject(const auto x, const auto y, const Object* obj) {
-    return x >= obj->position.x && x <= obj->position.x + obj->width * obj->scale &&
-           y >= obj->position.y && y <= obj->position.y + obj->height * obj->scale;
+    return x >= obj->pos.x && x <= obj->pos.x + obj->w * obj->scale &&
+           y >= obj->pos.y && y <= obj->pos.y + obj->h * obj->scale;
 }
 
 /**
@@ -91,14 +91,14 @@ void handleDragAndDrop(const SDL_Event* event) {
         for (auto it = objects.rbegin(); it != objects.rend(); ++it) {
             Object* obj = *it;
             // Bounds checking
-            SDL_Log("Object size (%f, %f)", obj->width, obj->height);
+            SDL_Log("Object size (%f, %f)", obj->w, obj->h);
             // Check for pins
             // This assumes that the object is not rotated.
-            for (auto pin : obj->inputPinPositions) {
+            for (auto pin : obj->inputPinPos) {
                 SDL_Log("Checking input pin at (%f, %f)", pin.x, pin.y);
-                if (mouseX >= obj->position.x + (pin.x * obj->scale) - 20 && mouseX <= obj->position.x + (pin.x * obj->
+                if (mouseX >= obj->pos.x + (pin.x * obj->scale) - 20 && mouseX <= obj->pos.x + (pin.x * obj->
                         scale) + 20 &&
-                    mouseY >= obj->position.y + (pin.y * obj->scale) - 20 && mouseY <= obj->position.y + (pin.y * obj->
+                    mouseY >= obj->pos.y + (pin.y * obj->scale) - 20 && mouseY <= obj->pos.y + (pin.y * obj->
                         scale) + 20) {
                     SDL_Log("Grabbed pin");
                     clickedPin = true;
@@ -129,8 +129,8 @@ void handleDragAndDrop(const SDL_Event* event) {
                     if (_obj->selected) {
                         selectedObjects.push_back(_obj);
                         _obj->dragging = true;
-                        _obj->offsetX = mouseX - _obj->position.x;
-                        _obj->offsetY = mouseY - _obj->position.y;
+                        _obj->offsetX = mouseX - _obj->pos.x;
+                        _obj->offsetY = mouseY - _obj->pos.y;
                     }
                 }
                 break;
@@ -156,9 +156,9 @@ void handleDragAndDrop(const SDL_Event* event) {
         if (!selectionRectActive) {
             for (const auto obj : selectedObjects) {
                 if (obj->dragging) {
-                    obj->moved = true;
-                    obj->position.x = event->motion.x - obj->offsetX;
-                    obj->position.y = event->motion.y - obj->offsetY;
+                    // obj->moved = true;
+                    obj->pos.x = event->motion.x - obj->offsetX;
+                    obj->pos.y = event->motion.y - obj->offsetY;
                 }
             }
         }
@@ -175,10 +175,10 @@ void handleDragAndDrop(const SDL_Event* event) {
             const float maxY = std::max(selectionRectStartY, selectionRectEndY);
 
             for (auto obj : objects) {
-                SDL_Log("Object at (%f, %f) with scale %f", obj->position.x, obj->position.y, obj->scale);
+                SDL_Log("Object at (%f, %f) with scale %f", obj->pos.x, obj->pos.y, obj->scale);
                 // Bounds checking
-                if (obj->position.x >= minX && obj->position.x + obj->width * obj->scale <= maxX &&
-                    obj->position.y >= minY && obj->position.y + obj->height * obj->scale <= maxY) {
+                if (obj->pos.x >= minX && obj->pos.x + obj->w * obj->scale <= maxX &&
+                    obj->pos.y >= minY && obj->pos.y + obj->h * obj->scale <= maxY) {
                     SDL_Log("Selected object");
                     obj->selected = true;
                     selectedObjects.push_back(obj);
@@ -198,6 +198,8 @@ void handleDragAndDrop(const SDL_Event* event) {
                         if (auto *btn = dynamic_cast<Button*>(clickedObject)) {
                             SDL_Log("Clicked on a button.");
                             btn->state = !btn->state;
+                            eventQueue.push(clickedObject);
+                            clickedObject->queued = true;
                             btn->selected = false;
                         } else {
                             clickedObject->selected = !clickedObjectPrevState;
@@ -235,7 +237,7 @@ void handleDragAndDrop(const SDL_Event* event) {
             for (const auto obj : objects) {
                 obj->selected = false;
                 obj->dragging = false;
-                obj->moved = false;
+                // obj->moved = false;
             }
         } else if (selectionRectActive) {
             selectionRectActive = false;
