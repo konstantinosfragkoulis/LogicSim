@@ -45,16 +45,22 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     const auto norGate = new Gate(renderer, NOR, 500, 150);
     const auto xorGate = new Gate(renderer, XOR, 600, 150);
     const auto xnorGate = new Gate(renderer, XNOR, 700, 150);
-    const auto newWire = new Wire(renderer);
+    const auto newWire1 = new Wire(renderer);
+    const auto newWire2 = new Wire(renderer);
+    const auto newWire3 = new Wire(renderer);
+    const auto newWire4 = new Wire(renderer);
     const auto led1 = new Led(renderer, 400, 100);
     const auto led2 = new Led(renderer, 500, 100);
 
-    Object::connect(btn1, newWire, 0, 0);
-    Object::connect(newWire, led1, 0, 0);
+    Object::connect(btn1, newWire1, 0, 0);
+    Object::connect(newWire1, led1, 0, 0);
 
-    Object::connect(btn2, andGate, 0, 0);
-    Object::connect(btn3, andGate, 0, 1);
-    Object::connect(andGate, led2, 0, 0);
+    Object::connect(btn2, newWire2, 0, 0);
+    Object::connect(newWire2, andGate, 0, 0);
+    Object::connect(btn3, newWire3, 0, 0);
+    Object::connect(newWire3, andGate, 0, 1);
+    Object::connect(andGate, newWire4, 0, 0);
+    Object::connect(newWire4, led2, 0, 0);
 
     return SDL_APP_CONTINUE;
 }
@@ -70,18 +76,18 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 }
 
 SDL_AppResult SDL_AppIterate(void* appstate) {
-
     int steps = 0;
     constexpr int MAX_STEPS = 1000;
     while (!eventQueue.empty() && steps < MAX_STEPS) {
-        SDL_Log("Processing event queue, size: %zu", eventQueue.size());
-        Object *obj = eventQueue.front();
+        Object* obj = eventQueue.front();
         eventQueue.pop();
 
         bool changed = obj->eval();
         if (changed) {
-            SDL_Log("Object state changed: %s", obj->state ? "true" : "false");
-            for (auto *outputObj : obj->outputPins) {
+            for (auto* outputObj : obj->outputPins) {
+                if (outputObj == nullptr) {
+                    continue; // Skip if there is no output object
+                }
                 if (!outputObj->queued) {
                     eventQueue.push(outputObj);
                     outputObj->queued = true;
@@ -103,7 +109,6 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 
     // Draw all objects
     for (const auto obj : objects) {
-        SDL_Log("Object: %p, state: %d", obj, obj->state);
         obj->render(renderer);
     }
     drawSelectionRect(renderer);

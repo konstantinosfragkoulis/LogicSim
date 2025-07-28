@@ -36,7 +36,10 @@ void drawSelectionRect(SDL_Renderer* renderer) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
         SDL_SetRenderDrawColor(renderer, 85, 136, 255, 255);
         for (int i = 0; i < 2; ++i) {
-            SDL_FRect borderRect = {x - static_cast<float>(i), y - static_cast<float>(i), w + 2 * static_cast<float>(i), h + 2 * static_cast<float>(i)};
+            SDL_FRect borderRect = {
+                x - static_cast<float>(i), y - static_cast<float>(i), w + 2 * static_cast<float>(i),
+                h + 2 * static_cast<float>(i)
+            };
             SDL_RenderRect(renderer, &borderRect);
         }
 
@@ -68,7 +71,7 @@ void checkCtrlPress(const SDL_Event* event) {
 
 bool isWithinObject(const auto x, const auto y, const Object* obj) {
     return x >= obj->pos.x && x <= obj->pos.x + obj->w * obj->scale &&
-           y >= obj->pos.y && y <= obj->pos.y + obj->h * obj->scale;
+        y >= obj->pos.y && y <= obj->pos.y + obj->h * obj->scale;
 }
 
 /**
@@ -102,7 +105,7 @@ void handleDragAndDrop(const SDL_Event* event) {
                         scale) + 20) {
                     SDL_Log("Grabbed pin");
                     clickedPin = true;
-                        }
+                }
             }
             if (!clickedPin && isWithinObject(mouseX, mouseY, obj)) {
                 hit = true;
@@ -142,7 +145,7 @@ void handleDragAndDrop(const SDL_Event* event) {
             }
             selectedObjects.clear();
         }
-        if (!hit && event->button.button == SDL_BUTTON_LEFT) {
+        if (!hit && !clickedPin && event->button.button == SDL_BUTTON_LEFT) {
             SDL_Log("Start selection rectangle at (%f, %f)", mouseX, mouseY);
             selectionRectStartX = mouseX;
             selectionRectStartY = mouseY;
@@ -166,7 +169,6 @@ void handleDragAndDrop(const SDL_Event* event) {
     case SDL_EVENT_MOUSE_BUTTON_UP:
         if (selectionRectActive && event->button.button == SDL_BUTTON_LEFT) {
             SDL_Log("Stop selection rectangle");
-            // selectionRectActive = false;
 
             // Select objects within the rectangle
             const float minX = std::min(selectionRectStartX, selectionRectEndX);
@@ -195,13 +197,14 @@ void handleDragAndDrop(const SDL_Event* event) {
                     SDL_Log("Ctrl was not pressed.");
                     if (selectedObjects.size() == 1) { // Only one object is selected
                         SDL_Log("Only one object is selected.");
-                        if (auto *btn = dynamic_cast<Button*>(clickedObject)) {
+                        if (auto* btn = dynamic_cast<Button*>(clickedObject)) {
                             SDL_Log("Clicked on a button.");
                             btn->state = !btn->state;
                             eventQueue.push(clickedObject);
                             clickedObject->queued = true;
                             btn->selected = false;
-                        } else {
+                        }
+                        else {
                             clickedObject->selected = !clickedObjectPrevState;
                         }
                     }
@@ -239,9 +242,12 @@ void handleDragAndDrop(const SDL_Event* event) {
                 obj->dragging = false;
                 // obj->moved = false;
             }
-        } else if (selectionRectActive) {
+        }
+        else if (selectionRectActive) {
             selectionRectActive = false;
         }
+
+        clickedPin = false;
         break;
     default:
         break;

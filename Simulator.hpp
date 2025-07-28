@@ -76,6 +76,10 @@ public:
 
 class Wire final : public Object {
 public:
+    int inputPin, outputPin;
+    // inputPin refers to the input pin of the object that the wire's output pin is connected to.
+    // outputPin refers to the output pin of the object that the wire's input pin is connected to.
+
     explicit Wire(SDL_Renderer* renderer, float x = 0.0, float y = 0.0);
     ~Wire() override;
 
