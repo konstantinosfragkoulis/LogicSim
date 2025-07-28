@@ -39,6 +39,32 @@ Object::Object(const float x, const float y, const float rotation, const float s
     objects.push_back(this);
 }
 
+Object::~Object() {
+    for (size_t i = 0; i < inputPins.size(); ++i) {
+        if (inputPins[i]) {
+            for (size_t j = 0; j < inputPins[i]->outputPins.size(); ++j) {
+                if (inputPins[i]->outputPins[j] == this) {
+                    inputPins[i]->outputPins[j] = nullptr;
+                }
+            }
+        }
+    }
+
+    for (size_t i = 0; i < outputPins.size(); ++i) {
+        if (outputPins[i]) {
+            for (size_t j = 0; j < outputPins[i]->inputPins.size(); ++j) {
+                if (outputPins[i]->inputPins[j] == this) {
+                    outputPins[i]->inputPins[j] = nullptr;
+                }
+            }
+        }
+    }
+
+    std::erase(objects, this);
+    std::erase(selectedObjects, this);
+}
+
+
 void Object::connect(Object* src, Object* dest, const int outputPin, const int inputPin) {
     // SDL_Log("Connecting 2 objects.");
     // If dest is a wire
@@ -53,7 +79,9 @@ void Object::connect(Object* src, Object* dest, const int outputPin, const int i
     src->outputPins[outputPin] = dest;
     dest->inputPins[inputPin] = src;
     eventQueue.push(src); // Maybe it's not necessary, and we can just push dest.
+    eventQueue.push(dest);
     src->queued = true;
+    dest->queued = true;
 }
 
 
@@ -159,6 +187,7 @@ Gate::~Gate() {
 
 bool Gate::eval() {
     const bool prevState = this->state;
+    if (inputPins[0] == nullptr) return false;
     switch (type) {
     case BUF:
         state = inputPins[0]->state;
@@ -167,21 +196,27 @@ bool Gate::eval() {
         state = !inputPins[0]->state;
         break;
     case AND:
+        if (inputPins[1] == nullptr) return false;
         state = inputPins[0]->state && inputPins[1]->state;
         break;
     case OR:
+        if (inputPins[1] == nullptr) return false;
         state = inputPins[0]->state || inputPins[1]->state;
         break;
     case NAND:
+        if (inputPins[1] == nullptr) return false;
         state = !(inputPins[0]->state && inputPins[1]->state);
         break;
     case NOR:
+        if (inputPins[1] == nullptr) return false;
         state = !(inputPins[0]->state || inputPins[1]->state);
         break;
     case XOR:
+        if (inputPins[1] == nullptr) return false;
         state = inputPins[0]->state != inputPins[1]->state;
         break;
     case XNOR:
+        if (inputPins[1] == nullptr) return false;
         state = inputPins[0]->state == inputPins[1]->state;
         break;
     default:
@@ -250,6 +285,10 @@ void Wire::render(SDL_Renderer* renderer) {
     else {
         SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
     }
+
+    // if (outputPins[0] == nullptr || inputPins[0] == nullptr) {
+    //     return; // No connection, nothing to render
+    // }
 
     SDL_RenderLine(renderer,
                    inputPins[0]->pos.x + inputPins[0]->outputPinPos[outputPin].x * inputPins[0]->scale,
@@ -320,4 +359,22 @@ void Led::render(SDL_Renderer* renderer) {
     rect.h *= scale;
 
     SDL_RenderTexture(renderer, texture, nullptr, &rect);
+}
+
+
+FakeObject::FakeObject(SDL_Renderer* renderer, float x, float y) {
+    inputPins.resize(1);
+    outputPins.resize(1);
+    inputPinPos.resize(1);
+    outputPinPos.resize(1);
+    inputPinPos[0] = {0, 0};
+    outputPinPos[0] = {0, 0};
+}
+
+bool FakeObject::eval() {
+    return false;
+}
+
+void FakeObject::render(SDL_Renderer* renderer) {
+    // No rendering logic for fake objects
 }

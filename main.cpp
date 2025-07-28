@@ -45,22 +45,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     const auto norGate = new Gate(renderer, NOR, 500, 150);
     const auto xorGate = new Gate(renderer, XOR, 600, 150);
     const auto xnorGate = new Gate(renderer, XNOR, 700, 150);
-    const auto newWire1 = new Wire(renderer);
-    const auto newWire2 = new Wire(renderer);
-    const auto newWire3 = new Wire(renderer);
-    const auto newWire4 = new Wire(renderer);
     const auto led1 = new Led(renderer, 400, 100);
     const auto led2 = new Led(renderer, 500, 100);
-
-    Object::connect(btn1, newWire1, 0, 0);
-    Object::connect(newWire1, led1, 0, 0);
-
-    Object::connect(btn2, newWire2, 0, 0);
-    Object::connect(newWire2, andGate, 0, 0);
-    Object::connect(btn3, newWire3, 0, 0);
-    Object::connect(newWire3, andGate, 0, 1);
-    Object::connect(andGate, newWire4, 0, 0);
-    Object::connect(newWire4, led2, 0, 0);
 
     return SDL_APP_CONTINUE;
 }
@@ -128,4 +114,8 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
     return SDL_APP_CONTINUE;
 }
 
-void SDL_AppQuit(void* appstate, SDL_AppResult result) {}
+void SDL_AppQuit(void* appstate, SDL_AppResult result) {
+    for (const auto obj : objects) {
+        delete obj;
+    }
+}

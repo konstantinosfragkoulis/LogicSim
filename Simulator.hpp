@@ -47,7 +47,7 @@ public:
     std::vector<SDL_Texture*> textures;
 
     explicit Object(float x = 0.0, float y = 0.0, float rotation = 0.0, float scale = 1.0);
-    virtual ~Object() = default;
+    virtual ~Object();
 
     virtual bool eval() = 0;
     virtual void render(SDL_Renderer* renderer) = 0;
@@ -91,6 +91,15 @@ class Led final : public Object {
 public:
     explicit Led(SDL_Renderer* renderer, float x = 0.0, float y = 0.0);
     ~Led() override;
+
+    bool eval() override;
+    void render(SDL_Renderer* renderer) override;
+};
+
+class FakeObject final : public Object {
+public:
+    explicit FakeObject(SDL_Renderer* renderer, float x = 0.0, float y = 0.0);
+    ~FakeObject() override = default;
 
     bool eval() override;
     void render(SDL_Renderer* renderer) override;

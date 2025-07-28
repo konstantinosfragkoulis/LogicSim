@@ -14,6 +14,7 @@ Object* clickedObject = nullptr;
 bool clickedObjectPrevState = false;
 bool hit = false;
 bool clickedPin = false;
+FakeObject* tmpFakeObject = nullptr;
 
 // Selection rectangle
 bool selectionRectActive = false;
@@ -88,23 +89,41 @@ void handleDragAndDrop(const SDL_Event* event) {
         float mouseX, mouseY;
         SDL_GetMouseState(&mouseX, &mouseY);
         clickTime = SDL_GetTicks();
-        SDL_Log("Mouse down at (%f, %f)", mouseX, mouseY);
+        SDL_Log("\n\n\n\n\n\nMouse down at (%f, %f)", mouseX, mouseY);
         hit = false;
 
-        for (auto it = objects.rbegin(); it != objects.rend(); ++it) {
+        std::vector<Object*> objectsCopy = objects;
+
+        for (auto it = objectsCopy.rbegin(); it != objectsCopy.rend(); ++it) {
             Object* obj = *it;
+
+            if (std::find(objects.begin(), objects.end(), obj) == objects.end()) {
+                continue;
+            }
+
+            if (obj == nullptr) continue;
             // Bounds checking
             SDL_Log("Object size (%f, %f)", obj->w, obj->h);
             // Check for pins
             // This assumes that the object is not rotated.
-            for (auto pin : obj->inputPinPos) {
-                SDL_Log("Checking input pin at (%f, %f)", pin.x, pin.y);
-                if (mouseX >= obj->pos.x + (pin.x * obj->scale) - 20 && mouseX <= obj->pos.x + (pin.x * obj->
-                        scale) + 20 &&
-                    mouseY >= obj->pos.y + (pin.y * obj->scale) - 20 && mouseY <= obj->pos.y + (pin.y * obj->
-                        scale) + 20) {
-                    SDL_Log("Grabbed pin");
-                    clickedPin = true;
+            if (!clickedPin) {
+                for (int pin = 0; pin < obj->outputPinPos.size(); ++pin) {
+                    SDL_Log("Checking pin at (%f, %f)", obj->outputPinPos[pin].x, obj->outputPinPos[pin].y);
+                    if (mouseX >= obj->pos.x + (obj->outputPinPos[pin].x * obj->scale) - 20 &&
+                        mouseX <= obj->pos.x + (obj->outputPinPos[pin].x * obj->scale) + 20 &&
+                        mouseY >= obj->pos.y + (obj->outputPinPos[pin].y * obj->scale) - 20 &&
+                        mouseY <= obj->pos.y + (obj->outputPinPos[pin].y * obj->scale) + 20) {
+                        SDL_Log("Grabbed pin\n\n");
+                        clickedPin = true;
+                        const auto tmpWire = new Wire(nullptr);
+                        const auto tmpObj = new FakeObject(nullptr);
+                        tmpFakeObject = tmpObj;
+                        Object::connect(obj, tmpWire, pin, 0);
+                        Object::connect(tmpWire, tmpObj, 0, 0);
+                        selectedObjects.push_back(tmpObj);
+                        tmpObj->dragging = true;
+                        clickedObject = tmpWire; // The wire is not actually clicked, but we need to keep track of it
+                    }
                 }
             }
             if (!clickedPin && isWithinObject(mouseX, mouseY, obj)) {
@@ -139,7 +158,7 @@ void handleDragAndDrop(const SDL_Event* event) {
                 break;
             }
         }
-        if (!hit && !ctrlPressed) {
+        if (!clickedPin && !hit && !ctrlPressed) {
             for (const auto obj : objects) {
                 obj->selected = false;
             }
@@ -185,6 +204,57 @@ void handleDragAndDrop(const SDL_Event* event) {
                     obj->selected = true;
                     selectedObjects.push_back(obj);
                 }
+            }
+        }
+
+        if (clickedPin) {
+            SDL_Log("Pin was clicked, checking for snapping.");
+            bool snapped = false;
+            float mouseX, mouseY;
+            SDL_GetMouseState(&mouseX, &mouseY);
+            // If possible, snap to pin
+            for (auto it = objects.rbegin(); it != objects.rend(); ++it) {
+                Object* obj = *it;
+                if (obj == nullptr) continue;
+
+                // Skip FakeObjects
+                if (dynamic_cast<FakeObject*>(obj)) continue;
+
+                // Bounds checking
+                SDL_Log("Object size (%f, %f)", obj->w, obj->h);
+                // Check for pins
+                // This assumes that the object is not rotated.
+
+                for (int pin = 0; pin < obj->inputPinPos.size(); ++pin) {
+                    SDL_Log("Checking pin at (%f, %f)", obj->inputPinPos[pin].x, obj->inputPinPos[pin].y);
+
+
+                    if (mouseX >= obj->pos.x + (obj->inputPinPos[pin].x * obj->scale) - 20 &&
+                        mouseX <= obj->pos.x + (obj->inputPinPos[pin].x * obj->scale) + 20 &&
+                        mouseY >= obj->pos.y + (obj->inputPinPos[pin].y * obj->scale) - 20 &&
+                        mouseY <= obj->pos.y + (obj->inputPinPos[pin].y * obj->scale) + 20) {
+                        SDL_Log("Snapped to pin\n\n");
+
+                        if (tmpFakeObject != nullptr) {
+                            delete tmpFakeObject;
+                            tmpFakeObject = nullptr;
+                        }
+
+                        Object::connect(clickedObject, obj, 0, pin);
+
+                        clickedPin = false;
+                        selectedObjects.clear();
+                        snapped = true;
+                    }
+                }
+            }
+
+            if (!snapped) {
+                clickedObject->inputPins[0]->outputPins[0] = nullptr; // Assume there is only one output pin
+                delete clickedObject->outputPins[0];
+                clickedObject->outputPins[0] = nullptr;
+                delete clickedObject;
+                clickedObject = nullptr;
             }
         }
 
