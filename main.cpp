@@ -3,12 +3,14 @@
 #include <chrono>
 #include <cstdio>
 #include <vector>
+#include <unordered_map>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3_image/SDL_image.h>
 
 #include "Simulator.hpp"
 #include "DragAndDrop.hpp"
+#include "ShortcutManager.hpp"
 
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
@@ -16,6 +18,7 @@ SDL_Renderer* renderer = nullptr;
 std::vector<Object*> objects;
 std::vector<Object*> selectedObjects;
 std::queue<Object*> eventQueue;
+std::unordered_map<int, std::function<void()>> shortcuts;
 
 Uint64 lastFrameTicks = 0;
 constexpr Uint64 targetFrameTime = 1000 / 120; // Target frame time for 120 FPS
@@ -52,6 +55,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
 }
 
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
+    handleShortcuts(event);
     handleDragAndDrop(event);
     switch (event->type) {
     case SDL_EVENT_QUIT:
@@ -95,7 +99,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 
     // Draw all objects
     for (const auto obj : objects) {
-        obj->render(renderer);
+        if (obj) obj->render(renderer);
     }
     drawSelectionRect(renderer);
 

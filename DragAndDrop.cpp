@@ -63,7 +63,7 @@ void checkCtrlPress(const SDL_Event* event) {
         }
     }
     else if (event->type == SDL_EVENT_KEY_UP) {
-        if (!(mod & SDL_KMOD_CTRL)) {
+        if (ctrlPressed && !(mod & SDL_KMOD_CTRL)) {
             ctrlPressed = false;
             SDL_Log("Ctrl key released, multiple selection mode disabled.");
         }
@@ -115,6 +115,13 @@ void handleDragAndDrop(const SDL_Event* event) {
                         mouseY <= obj->pos.y + (obj->outputPinPos[pin].y * obj->scale) + 20) {
                         SDL_Log("Grabbed pin\n\n");
                         clickedPin = true;
+                        // Check if pin is already connected to something.
+                        // For now, we limit connections to just one per pin.
+                        if (obj->outputPins[pin] != nullptr) {
+                            SDL_Log("Pin is already connected to something, not creating a new wire.");
+                            clickedPin = false;
+                            break;
+                        }
                         const auto tmpWire = new Wire(nullptr);
                         const auto tmpObj = new FakeObject(nullptr);
                         tmpFakeObject = tmpObj;
@@ -234,6 +241,24 @@ void handleDragAndDrop(const SDL_Event* event) {
                         mouseY >= obj->pos.y + (obj->inputPinPos[pin].y * obj->scale) - 20 &&
                         mouseY <= obj->pos.y + (obj->inputPinPos[pin].y * obj->scale) + 20) {
                         SDL_Log("Snapped to pin\n\n");
+
+                        // Check if pin is already connected to something.
+                        // For now, we limit connections to just one per pin.
+                        if (obj->inputPins[pin] != nullptr) {
+                            SDL_Log("Pin is already connected to something, not creating a new connection.");
+                            clickedPin = false;
+                            selectedObjects.clear();
+                            break;
+                        }
+
+                        // Check if the user is trying to connect to the same object
+                        // clickedObject is the wire, so the actual object is the first input pin
+                        if (clickedObject->inputPins[0] == obj) {
+                            SDL_Log("Clicked object is the same as the object being snapped to, not creating a new connection.");
+                            clickedPin = false;
+                            selectedObjects.clear();
+                            break;
+                        }
 
                         if (tmpFakeObject != nullptr) {
                             delete tmpFakeObject;

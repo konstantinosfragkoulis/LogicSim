@@ -40,6 +40,10 @@ Object::Object(const float x, const float y, const float rotation, const float s
 }
 
 Object::~Object() {
+
+    std::erase(objects, this);
+    // std::erase(selectedObjects, this);
+
     for (size_t i = 0; i < inputPins.size(); ++i) {
         if (inputPins[i]) {
             for (size_t j = 0; j < inputPins[i]->outputPins.size(); ++j) {
@@ -59,9 +63,6 @@ Object::~Object() {
             }
         }
     }
-
-    std::erase(objects, this);
-    std::erase(selectedObjects, this);
 }
 
 
@@ -289,6 +290,8 @@ void Wire::render(SDL_Renderer* renderer) {
     // if (outputPins[0] == nullptr || inputPins[0] == nullptr) {
     //     return; // No connection, nothing to render
     // }
+
+    if (!inputPins[0] || !outputPins[0]) return;
 
     SDL_RenderLine(renderer,
                    inputPins[0]->pos.x + inputPins[0]->outputPinPos[outputPin].x * inputPins[0]->scale,
