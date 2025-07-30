@@ -21,7 +21,7 @@ std::queue<Object*> eventQueue;
 std::unordered_map<int, std::function<void()>> shortcuts;
 
 Uint64 lastFrameTicks = 0;
-constexpr Uint64 targetFrameTime = 1000 / 120; // Target frame time for 120 FPS
+constexpr Uint64 targetFrameTime = 1000 / 125; // Target frame time for 125 FPS
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     SDL_SetAppMetadata("Logic Sim", "1.0", "com.kfragkoulis.logicsim");
@@ -119,7 +119,11 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 }
 
 void SDL_AppQuit(void* appstate, SDL_AppResult result) {
-    for (const auto obj : objects) {
+    std::vector<Object *> objCopy = objects;
+    for (const auto obj : objCopy) {
         delete obj;
     }
+
+    objCopy.clear();
+    objects.clear();
 }

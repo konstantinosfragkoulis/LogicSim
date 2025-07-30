@@ -40,9 +40,7 @@ Object::Object(const float x, const float y, const float rotation, const float s
 }
 
 Object::~Object() {
-
     std::erase(objects, this);
-    // std::erase(selectedObjects, this);
 
     for (size_t i = 0; i < inputPins.size(); ++i) {
         if (inputPins[i]) {

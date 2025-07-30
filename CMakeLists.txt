@@ -12,6 +12,8 @@ add_executable(LogicSim main.cpp
         Simulator.cpp
         DragAndDrop.cpp
         DragAndDrop.hpp
+        ShortcutManager.cpp
+        ShortcutManager.hpp
 )
 
 target_link_libraries(LogicSim PRIVATE SDL3::SDL3 SDL3_image::SDL3_image)
