@@ -196,7 +196,8 @@ bool Gate::eval() {
     const bool prevState = this->state;
     // This assumes only two input pins
     // For custom gates this code needs to change
-    if (inputPins[0].empty() || inputPins[1].empty()) return false;
+    if (inputPins[0].empty()) return false;
+    if (!(type == NOT || type == BUF) && inputPins[1].empty()) return false;
 
     switch (type) {
         case BUF:
