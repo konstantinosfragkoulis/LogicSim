@@ -115,13 +115,13 @@ void handleDragAndDrop(const SDL_Event* event) {
                         mouseY <= obj->pos.y + (obj->outputPinPos[pin].y * obj->scale) + 20) {
                         SDL_Log("Grabbed pin\n\n");
                         clickedPin = true;
-                        // Check if pin is already connected to something.
-                        // For now, we limit connections to just one per pin.
-                        if (obj->outputPins[pin] != nullptr) {
-                            SDL_Log("Pin is already connected to something, not creating a new wire.");
-                            clickedPin = false;
-                            break;
-                        }
+                        // // Check if pin is already connected to something.
+                        // // For now, we limit connections to just one per pin.
+                        // if (obj->outputPins[pin] != nullptr) {
+                        //     SDL_Log("Pin is already connected to something, not creating a new wire.");
+                        //     clickedPin = false;
+                        //     break;
+                        // }
                         const auto tmpWire = new Wire(nullptr);
                         const auto tmpObj = new FakeObject(nullptr);
                         tmpFakeObject = tmpObj;
@@ -242,18 +242,18 @@ void handleDragAndDrop(const SDL_Event* event) {
                         mouseY <= obj->pos.y + (obj->inputPinPos[pin].y * obj->scale) + 20) {
                         SDL_Log("Snapped to pin\n\n");
 
-                        // Check if pin is already connected to something.
-                        // For now, we limit connections to just one per pin.
-                        if (obj->inputPins[pin] != nullptr) {
-                            SDL_Log("Pin is already connected to something, not creating a new connection.");
-                            clickedPin = false;
-                            selectedObjects.clear();
-                            break;
-                        }
+                        // // Check if pin is already connected to something.
+                        // // For now, we limit connections to just one per pin.
+                        // if (obj->inputPins[pin] != nullptr) {
+                        //     SDL_Log("Pin is already connected to something, not creating a new connection.");
+                        //     clickedPin = false;
+                        //     selectedObjects.clear();
+                        //     break;
+                        // }
 
                         // Check if the user is trying to connect to the same object
                         // clickedObject is the wire, so the actual object is the first input pin
-                        if (clickedObject->inputPins[0] == obj) {
+                        if (std::find(clickedObject->inputPins[0].begin(), clickedObject->inputPins[0].end(), obj) != clickedObject->inputPins[0].end()) {
                             SDL_Log("Clicked object is the same as the object being snapped to, not creating a new connection.");
                             clickedPin = false;
                             selectedObjects.clear();
@@ -275,9 +275,13 @@ void handleDragAndDrop(const SDL_Event* event) {
             }
 
             if (!snapped) {
-                clickedObject->inputPins[0]->outputPins[0] = nullptr; // Assume there is only one output pin
-                delete clickedObject->outputPins[0];
-                clickedObject->outputPins[0] = nullptr;
+                // We assume that the wire's input and output pins are only connected to one object
+                for (auto &outputPins : clickedObject->inputPins[0][0]->outputPins) {
+                    std::erase(outputPins, clickedObject);
+                }
+                Object *tmpObj = clickedObject->outputPins[0][0];
+                delete clickedObject->outputPins[0][0];
+                std::erase(clickedObject->outputPins[0], tmpObj);
                 delete clickedObject;
                 clickedObject = nullptr;
             }

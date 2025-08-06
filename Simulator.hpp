@@ -33,8 +33,8 @@ public:
     float scale;
     float w, h;
 
-    std::vector<Object*> inputPins; // Input pins for the object
-    std::vector<Object*> outputPins; // Output pins for the object
+    std::vector<std::vector<Object*>> inputPins; // Input pins for the object
+    std::vector<std::vector<Object*>> outputPins; // Output pins for the object
     // Relative coordinates, not adjusted for scale or rotation
     std::vector<Coords> inputPinPos;
     // Relative coordinates, not adjusted for scale or rotation
@@ -53,6 +53,7 @@ public:
     virtual void render(SDL_Renderer* renderer) = 0;
 
     static void connect(Object* src, Object* dest, int outputPin = 0, int inputPin = 0);
+    void disconnect(Object* obj);
 };
 
 class Button final : public Object {

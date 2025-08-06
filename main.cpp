@@ -1,12 +1,10 @@
 #define SDL_MAIN_USE_CALLBACKS 1
 
 #include <chrono>
-#include <cstdio>
 #include <vector>
 #include <unordered_map>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-#include <SDL3_image/SDL_image.h>
 
 #include "Simulator.hpp"
 #include "DragAndDrop.hpp"
@@ -46,6 +44,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     const auto orGate = new Gate(renderer, OR, 300, 150);
     const auto nandGate = new Gate(renderer, NAND, 400, 150);
     const auto norGate = new Gate(renderer, NOR, 500, 150);
+    const auto norGate2 = new Gate(renderer, NOR, 500, 150);
     const auto xorGate = new Gate(renderer, XOR, 600, 150);
     const auto xnorGate = new Gate(renderer, XNOR, 700, 150);
     const auto led1 = new Led(renderer, 400, 100);
@@ -72,15 +71,17 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
         Object* obj = eventQueue.front();
         eventQueue.pop();
 
-        bool changed = obj->eval();
+        const bool changed = obj->eval();
         if (changed) {
-            for (auto* outputObj : obj->outputPins) {
-                if (outputObj == nullptr) {
-                    continue; // Skip if there is no output object
-                }
-                if (!outputObj->queued) {
-                    eventQueue.push(outputObj);
-                    outputObj->queued = true;
+            for (const auto& outputPin : obj->outputPins) {
+                for (auto* outputObj : outputPin) {
+                    if (outputObj == nullptr) {
+                        continue; // Skip if there is no output object
+                    }
+                    if (!outputObj->queued) {
+                        eventQueue.push(outputObj);
+                        outputObj->queued = true;
+                    }
                 }
             }
         }
@@ -105,7 +106,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 
     SDL_RenderPresent(renderer);
 
-    // Limit frame rate to 120 FPS
+    // Limit frame rate to 125 FPS
     Uint64 now = SDL_GetTicks();
     if (lastFrameTicks != 0) {
         Uint64 elapsed = now - lastFrameTicks;
