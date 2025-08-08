@@ -146,7 +146,77 @@ void Button::render(SDL_Renderer *renderer) {
     SDL_RenderTexture(renderer, texture, nullptr, &rect);
 }
 
-Gate::Gate(SDL_Renderer *renderer, const GateType type, const float x, const float y) : Object(x, y, 1.0, 0.05),
+
+Clock::Clock(SDL_Renderer *renderer, const float x, float y, const float freq) : Object(x, y, 0, 0.05), freq(freq) {
+    inputPins.resize(0);
+    outputPins.resize(1);
+    inputPinPos.resize(0);
+    outputPinPos.resize(1);
+    textures.resize(1);
+
+    const std::string path = "../Assets/CLK.png";
+    textures[0] = IMG_LoadTexture(renderer, path.c_str());
+    if (!textures[0]) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load texture: %s", SDL_GetError());
+    }
+    float w, h;
+    SDL_GetTextureSize(textures[0], &w, &h);
+    this->w = w;
+    this->h = h;
+
+    outputPinPos[0] = {w - 20, h / 2};
+}
+
+Clock::~Clock() {
+    for (const auto texture: textures) {
+        if (texture) {
+            SDL_DestroyTexture(texture);
+        }
+    }
+}
+
+bool Clock::eval() {
+    static Uint64 last = 0;
+    static bool lastState = false;
+    Uint64 now = SDL_GetTicks();
+    if (last == 0) last = now;
+    float T = 1000.0f / freq / 2.0f;
+    if (now - last >= T) {
+        lastState = !lastState;
+        last = now;
+    }
+    bool prevState = state;
+    state = lastState;
+    return state != prevState;
+}
+
+void Clock::render(SDL_Renderer *renderer) {
+    if (selected) {
+        SDL_FRect border;
+        border.x = pos.x - 2;
+        border.y = pos.y - 2;
+        border.w = w * scale - 3;
+        border.h = h * scale + 4;
+
+        SDL_SetRenderDrawColor(renderer, 85, 136, 255, 255);
+        SDL_RenderFillRect(renderer, &border);
+    }
+
+    if (!textures[0]) {
+        return;
+    }
+
+    SDL_FRect rect = {pos.x, pos.y, 0, 0};
+    SDL_GetTextureSize(textures[0], &rect.w, &rect.h);
+    rect.w *= scale;
+    rect.h *= scale;
+
+    SDL_RenderTexture(renderer, textures[0], nullptr, &rect);
+}
+
+
+
+Gate::Gate(SDL_Renderer *renderer, const GateType type, const float x, const float y) : Object(x, y, 0, 0.05),
     type(type) {
     const bool isSingleInput = (type == NOT || type == BUF);
     inputPins.resize(isSingleInput ? 1 : 2);

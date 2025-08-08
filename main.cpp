@@ -41,6 +41,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     const auto bufGate = new Gate(renderer, BUF, 10, 150);
     const auto notGate = new Gate(renderer, NOT, 100, 150);
     const auto andGate = new Gate(renderer, AND, 200, 150);
+    const auto andGate2 = new Gate(renderer, AND, 200, 150);
     const auto orGate = new Gate(renderer, OR, 300, 150);
     const auto nandGate = new Gate(renderer, NAND, 400, 150);
     const auto norGate = new Gate(renderer, NOR, 500, 150);
@@ -49,6 +50,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     const auto xnorGate = new Gate(renderer, XNOR, 700, 150);
     const auto led1 = new Led(renderer, 400, 100);
     const auto led2 = new Led(renderer, 500, 100);
+    const auto clk = new Clock(renderer, 10, 300, 1);
 
     return SDL_APP_CONTINUE;
 }
@@ -65,6 +67,16 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 }
 
 SDL_AppResult SDL_AppIterate(void* appstate) {
+    // Add all clocks to the event queue
+    for (auto * obj : objects) {
+        if (auto* clk = dynamic_cast<Clock *>(obj)) {
+            if (!clk->queued) {
+                eventQueue.push(clk);
+                clk->queued = true;
+            }
+        }
+    }
+
     int steps = 0;
     constexpr int MAX_STEPS = 1000;
     while (!eventQueue.empty() && steps < MAX_STEPS) {

@@ -65,6 +65,16 @@ public:
     void render(SDL_Renderer* renderer) override;
 };
 
+class Clock final : public Object {
+public:
+    float freq;
+    explicit Clock(SDL_Renderer* renderer, float x = 0.0, float y = 0.0, float freq = 1.0);
+    ~Clock() override;
+
+    bool eval() override;
+    void render(SDL_Renderer* renderer) override;
+};
+
 class Gate final : public Object {
 public:
     GateType type;
