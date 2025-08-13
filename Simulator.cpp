@@ -73,6 +73,7 @@ void Object::connect(Object *src, Object *dest, const int outputPin, const int i
     dest->queued = true;
 }
 
+// Disconnect this from another object.
 void Object::disconnect(Object *obj) {
     if (!obj) return;
 
@@ -354,7 +355,9 @@ bool Wire::eval() {
 }
 
 void Wire::render(SDL_Renderer *renderer) {
-    if (state) {
+    if (selected) {
+        SDL_SetRenderDrawColor(renderer, 85, 136, 255, 255);
+    } else if (state) {
         SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
     } else {
         SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);

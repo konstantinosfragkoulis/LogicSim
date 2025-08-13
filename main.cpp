@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <vector>
-#include <unordered_map>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
@@ -16,7 +15,6 @@ SDL_Renderer* renderer = nullptr;
 std::vector<Object*> objects;
 std::vector<Object*> selectedObjects;
 std::queue<Object*> eventQueue;
-std::unordered_map<int, std::function<void()>> shortcuts;
 
 Uint64 lastFrameTicks = 0;
 constexpr Uint64 targetFrameTime = 1000 / 125; // Target frame time for 125 FPS
@@ -33,6 +31,19 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, SDL_GetError());
         return SDL_APP_FAILURE;
     }
+
+    auto& shortcutManager = ShortcutManager::instance();
+    shortcutManager.registerShortcut({SDLK_Q, SDL_KMOD_CTRL}, []() {
+        SDL_Log("Ctrl+Q pressed, quitting application.");
+    });
+
+    shortcutManager.registerShortcut({SDLK_DELETE, SDL_KMOD_NONE}, [] {
+        SDL_Log("Delete pressed.");
+        for (auto *obj : selectedObjects) {
+            std::erase(objects, obj);
+            delete obj;
+        }
+    });
 
     const auto btn1 = new Button(renderer, 10, 10);
     const auto btn2 = new Button(renderer, 100, 10);
@@ -56,7 +67,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
 }
 
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
-    handleShortcuts(event);
+    ShortcutManager::instance().processEvent(*event);
     handleDragAndDrop(event);
     switch (event->type) {
     case SDL_EVENT_QUIT:

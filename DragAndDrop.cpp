@@ -70,7 +70,30 @@ void checkCtrlPress(const SDL_Event* event) {
     }
 }
 
-bool isWithinObject(const auto x, const auto y, const Object* obj) {
+bool isWithinObject(const auto x, const auto y, Object* obj) {
+    if (auto *wire = dynamic_cast<Wire *>(obj)) {
+        // Assume wires are only connected to one object
+        auto *inputObj = wire->inputPins[0][0];
+        auto *outputObj = wire->outputPins[0][0];
+
+        Coords wireStart = {
+            inputObj->pos.x + inputObj->outputPinPos[wire->outputPin].x * inputObj->scale,
+            inputObj->pos.y + inputObj->outputPinPos[wire->outputPin].y * inputObj->scale
+        };
+
+        Coords wireEnd = {
+            outputObj->pos.x + outputObj->inputPinPos[wire->inputPin].x * outputObj->scale,
+            outputObj->pos.y + outputObj->inputPinPos[wire->inputPin].y * outputObj->scale
+        };
+
+        double dx = wireEnd.x - wireStart.x;
+        double dy = wireEnd.y - wireStart.y;
+
+        double cross = (x - wireStart.x) * dy - (y - wireStart.y) * dx;
+        return ((std::abs(cross) / std::sqrt(dx * dx + dy * dy) <= 5) &&
+                (std::min(wireStart.x, wireEnd.x) + 5 <= x && x <= std::max(wireStart.x, wireEnd.x) - 5) &&
+                (std::min(wireStart.y, wireEnd.y) + 5 <= y && y <= std::max(wireStart.y, wireEnd.y) - 5));
+    }
     return x >= obj->pos.x && x <= obj->pos.x + obj->w * obj->scale &&
         y >= obj->pos.y && y <= obj->pos.y + obj->h * obj->scale;
 }
@@ -115,13 +138,6 @@ void handleDragAndDrop(const SDL_Event* event) {
                         mouseY <= obj->pos.y + (obj->outputPinPos[pin].y * obj->scale) + 20) {
                         SDL_Log("Grabbed pin\n\n");
                         clickedPin = true;
-                        // // Check if pin is already connected to something.
-                        // // For now, we limit connections to just one per pin.
-                        // if (obj->outputPins[pin] != nullptr) {
-                        //     SDL_Log("Pin is already connected to something, not creating a new wire.");
-                        //     clickedPin = false;
-                        //     break;
-                        // }
                         const auto tmpWire = new Wire(nullptr);
                         const auto tmpObj = new FakeObject(nullptr);
                         tmpFakeObject = tmpObj;
@@ -241,15 +257,6 @@ void handleDragAndDrop(const SDL_Event* event) {
                         mouseY >= obj->pos.y + (obj->inputPinPos[pin].y * obj->scale) - 20 &&
                         mouseY <= obj->pos.y + (obj->inputPinPos[pin].y * obj->scale) + 20) {
                         SDL_Log("Snapped to pin\n\n");
-
-                        // // Check if pin is already connected to something.
-                        // // For now, we limit connections to just one per pin.
-                        // if (obj->inputPins[pin] != nullptr) {
-                        //     SDL_Log("Pin is already connected to something, not creating a new connection.");
-                        //     clickedPin = false;
-                        //     selectedObjects.clear();
-                        //     break;
-                        // }
 
                         // Check if the user is trying to connect to the same object
                         // clickedObject is the wire, so the actual object is the first input pin
