@@ -5,6 +5,19 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include "Simulator.hpp"
+#include "Assets/AND.h"
+#include "Assets/BUF.h"
+#include "Assets/NAND.h"
+#include "Assets/NOR.h"
+#include "Assets/NOT.h"
+#include "Assets/OR.h"
+#include "Assets/XOR.h"
+#include "Assets/XNOR.h"
+#include "Assets/Button0.h"
+#include "Assets/Button1.h"
+#include "Assets/Led0.h"
+#include "Assets/Led1.h"
+#include "Assets/CLK.h"
 
 #include <string>
 
@@ -56,13 +69,10 @@ Object::~Object() {
 
 
 void Object::connect(Object *src, Object *dest, const int outputPin, const int inputPin) {
-    // If dest is a wire
     if (auto *wire = dynamic_cast<Wire *>(dest)) {
-        // SDL_Log("Dest is a wire!");
         wire->outputPin = outputPin;
     }
     if (auto *wire = dynamic_cast<Wire *>(src)) {
-        // SDL_Log("Src is a wire!");
         wire->inputPin = inputPin;
     }
     src->outputPins[outputPin].push_back(dest);
@@ -93,10 +103,20 @@ Button::Button(SDL_Renderer *renderer, const float x, const float y) : Object(x,
     outputPinPos.resize(1);
     textures.resize(2);
 
-    const std::string path0 = "../Assets/Button0.png";
-    const std::string path1 = "../Assets/Button1.png";
-    textures[0] = IMG_LoadTexture(renderer, path0.c_str());
-    textures[1] = IMG_LoadTexture(renderer, path1.c_str());
+    SDL_IOStream* btn0 = SDL_IOFromConstMem(Button0_png, Button0_png_len);
+    SDL_IOStream* btn1 = SDL_IOFromConstMem(Button1_png, Button1_png_len);
+    if (!btn0 || !btn1) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to create IOStream from memory: %s", SDL_GetError());
+    }
+
+    SDL_Surface* surface0 = IMG_Load_IO(btn0, 1);
+    SDL_Surface* surface1 = IMG_Load_IO(btn1, 1);
+    if (!surface0 || !surface1) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load image from IOStream: %s", SDL_GetError());
+    }
+    textures[0] = SDL_CreateTextureFromSurface(renderer, surface0);
+    textures[1] = SDL_CreateTextureFromSurface(renderer, surface1);
+
     if (!textures[0] || !textures[1]) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load texture: %s", SDL_GetError());
         return;
@@ -155,11 +175,17 @@ Clock::Clock(SDL_Renderer *renderer, const float x, float y, const float freq) :
     outputPinPos.resize(1);
     textures.resize(1);
 
-    const std::string path = "../Assets/CLK.png";
-    textures[0] = IMG_LoadTexture(renderer, path.c_str());
-    if (!textures[0]) {
-        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load texture: %s", SDL_GetError());
+    SDL_IOStream* rw = SDL_IOFromConstMem(CLK_png, CLK_png_len);
+    if (!rw) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to create IOStream from memory: %s", SDL_GetError());
     }
+
+    SDL_Surface* surface = IMG_Load_IO(rw, 1);
+    if (!surface) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load image from IOStream: %s", SDL_GetError());
+    }
+    textures[0] = SDL_CreateTextureFromSurface(renderer, surface);
+
     float w, h;
     SDL_GetTextureSize(textures[0], &w, &h);
     this->w = w;
@@ -226,12 +252,50 @@ Gate::Gate(SDL_Renderer *renderer, const GateType type, const float x, const flo
     outputPinPos.resize(1);
     textures.resize(1);
 
-    const std::string path = "../Assets/" + GateTypeToString(type) + ".png";
-    textures[0] = IMG_LoadTexture(renderer, path.c_str());
+
+    SDL_IOStream* rw = nullptr;
+    switch (type) {
+        case BUF:
+            rw = SDL_IOFromConstMem(BUF_png, BUF_png_len);
+            break;
+        case NOT:
+            rw = SDL_IOFromConstMem(NOT_png, NOT_png_len);
+            break;
+        case AND:
+            rw = SDL_IOFromConstMem(AND_png, AND_png_len);
+            break;
+        case OR:
+            rw = SDL_IOFromConstMem(OR_png, OR_png_len);
+            break;
+        case NAND:
+            rw = SDL_IOFromConstMem(NAND_png, NAND_png_len);
+            break;
+        case NOR:
+            rw = SDL_IOFromConstMem(NOR_png, NOR_png_len);
+            break;
+        case XOR:
+            rw = SDL_IOFromConstMem(XOR_png, XOR_png_len);
+            break;
+        case XNOR:
+            rw = SDL_IOFromConstMem(XNOR_png, XNOR_png_len);
+            break;
+    }
+    
+    if (!rw) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to create IOStream from memory: %s", SDL_GetError());
+    }
+
+    SDL_Surface* surface = IMG_Load_IO(rw, 1);
+    if (!surface) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load image from IOStream: %s", SDL_GetError());
+    }
+    textures[0] = SDL_CreateTextureFromSurface(renderer, surface);
+
     if (!textures[0]) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load texture: %s", SDL_GetError());
         return;
     }
+
     float w, h;
     SDL_GetTextureSize(textures[0], &w, &h);
     this->w = w;
@@ -387,6 +451,20 @@ Led::Led(SDL_Renderer *renderer, const float x, float y) : Object(x, y, 1.0, 0.0
     outputPinPos.resize(0);
     textures.resize(2);
     state = false;
+
+    SDL_IOStream* led0 = SDL_IOFromConstMem(Led0_png, Led0_png_len);
+    SDL_IOStream* led1 = SDL_IOFromConstMem(Led1_png, Led1_png_len);
+    if (!led0 || !led1) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to create IOStream from memory: %s", SDL_GetError());
+    }
+
+    SDL_Surface* surface0 = IMG_Load_IO(led0, 1);
+    SDL_Surface* surface1 = IMG_Load_IO(led1, 1);
+    if (!surface0 || !surface1) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load image from IOStream: %s", SDL_GetError());
+    }
+    textures[0] = SDL_CreateTextureFromSurface(renderer, surface0);
+    textures[1] = SDL_CreateTextureFromSurface(renderer, surface1);
 
     const std::string path0 = "../Assets/Led0.png";
     const std::string path1 = "../Assets/Led1.png";
