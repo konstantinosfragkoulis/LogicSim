@@ -466,10 +466,6 @@ Led::Led(SDL_Renderer *renderer, const float x, float y) : Object(x, y, 1.0, 0.0
     textures[0] = SDL_CreateTextureFromSurface(renderer, surface0);
     textures[1] = SDL_CreateTextureFromSurface(renderer, surface1);
 
-    const std::string path0 = "../Assets/Led0.png";
-    const std::string path1 = "../Assets/Led1.png";
-    textures[0] = IMG_LoadTexture(renderer, path0.c_str());
-    textures[1] = IMG_LoadTexture(renderer, path1.c_str());
     if (!textures[0] || !textures[1]) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load texture: %s", SDL_GetError());
         return;
