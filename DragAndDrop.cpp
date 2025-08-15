@@ -7,6 +7,7 @@
 #include "DragAndDrop.hpp"
 
 #include <cmath>
+#include <algorithm>
 
 bool ctrlPressed = false;
 Uint64 clickTime = 0;
