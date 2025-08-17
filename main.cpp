@@ -40,6 +40,13 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     shortcutManager.registerShortcut({SDLK_DELETE, SDL_KMOD_NONE}, [] {
         SDL_Log("Delete pressed.");
         for (auto *obj : selectedObjects) {
+            for (const auto& outputPin : obj->outputPins) {
+                for (auto *outputObj : outputPin) {
+                    if (outputObj == nullptr) continue;
+                    eventQueue.push(outputObj);
+                    outputObj->queued = true;
+                }
+            }
             std::erase(objects, obj);
             delete obj;
         }
