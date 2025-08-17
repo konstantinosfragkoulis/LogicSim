@@ -5,19 +5,19 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include "Simulator.hpp"
-#include "Assets/AND.h"
-#include "Assets/BUF.h"
-#include "Assets/NAND.h"
-#include "Assets/NOR.h"
-#include "Assets/NOT.h"
-#include "Assets/OR.h"
-#include "Assets/XOR.h"
-#include "Assets/XNOR.h"
-#include "Assets/Button0.h"
-#include "Assets/Button1.h"
-#include "Assets/Led0.h"
-#include "Assets/Led1.h"
-#include "Assets/CLK.h"
+#include "Assets/AND.hpp"
+#include "Assets/BUF.hpp"
+#include "Assets/NAND.hpp"
+#include "Assets/NOR.hpp"
+#include "Assets/NOT.hpp"
+#include "Assets/OR.hpp"
+#include "Assets/XOR.hpp"
+#include "Assets/XNOR.hpp"
+#include "Assets/Button0.hpp"
+#include "Assets/Button1.hpp"
+#include "Assets/Led0.hpp"
+#include "Assets/Led1.hpp"
+#include "Assets/CLK.hpp"
 
 #include <string>
 
