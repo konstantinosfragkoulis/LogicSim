@@ -14,7 +14,7 @@ Uint64 clickTime = 0;
 Object* clickedObject = nullptr;
 bool clickedObjectPrevState = false;
 bool hit = false;
-bool clickedPin = false;
+bool clickedPin = false, clickedInputPin = false, clickedOutputPin = false;
 FakeObject* tmpFakeObject = nullptr;
 
 // Selection rectangle
@@ -130,6 +130,8 @@ void handleDragAndDrop(const SDL_Event* event) {
             SDL_Log("Object size (%f, %f)", obj->w, obj->h);
             // Check for pins
             // This assumes that the object is not rotated.
+
+            // Output pins
             if (!clickedPin) {
                 for (int pin = 0; pin < obj->outputPinPos.size(); ++pin) {
                     SDL_Log("Checking pin at (%f, %f)", obj->outputPinPos[pin].x, obj->outputPinPos[pin].y);
@@ -137,8 +139,8 @@ void handleDragAndDrop(const SDL_Event* event) {
                         mouseX <= obj->pos.x + (obj->outputPinPos[pin].x * obj->scale) + 20 &&
                         mouseY >= obj->pos.y + (obj->outputPinPos[pin].y * obj->scale) - 20 &&
                         mouseY <= obj->pos.y + (obj->outputPinPos[pin].y * obj->scale) + 20) {
-                        SDL_Log("Grabbed pin\n\n");
-                        clickedPin = true;
+                        SDL_Log("Grabbed output pin\n\n");
+                        clickedOutputPin = true;
                         const auto tmpWire = new Wire(nullptr);
                         const auto tmpObj = new FakeObject(nullptr);
                         tmpFakeObject = tmpObj;
@@ -147,9 +149,36 @@ void handleDragAndDrop(const SDL_Event* event) {
                         selectedObjects.push_back(tmpObj);
                         tmpObj->dragging = true;
                         clickedObject = tmpWire; // The wire is not actually clicked, but we need to keep track of it
+                        break;
                     }
                 }
             }
+
+            // Input pins
+            if (!clickedPin) {
+                for (int pin = 0; pin < obj->inputPinPos.size(); ++pin) {
+                    SDL_Log("Checking pin at (%f, %f)", obj->inputPinPos[pin].x, obj->inputPinPos[pin].y);
+                    if (mouseX >= obj->pos.x + (obj->inputPinPos[pin].x * obj->scale) - 20 &&
+                        mouseX <= obj->pos.x + (obj->inputPinPos[pin].x * obj->scale) + 20 &&
+                        mouseY >= obj->pos.y + (obj->inputPinPos[pin].y * obj->scale) - 20 &&
+                        mouseY <= obj->pos.y + (obj->inputPinPos[pin].y * obj->scale) + 20) {
+                        SDL_Log("Grabbed input pin\n\n");
+                        clickedInputPin = true;
+                        const auto tmpWire = new Wire(nullptr);
+                        const auto tmpObj = new FakeObject(nullptr);
+                        tmpFakeObject = tmpObj;
+                        Object::connect(tmpWire, obj, 0, pin);
+                        Object::connect(tmpObj, tmpWire, 0, 0);
+                        selectedObjects.push_back(tmpObj);
+                        tmpObj->dragging = true;
+                        clickedObject = tmpWire; // The wire is not actually clicked, but we need to keep track of it
+                        break;
+                    }
+                }
+            }
+
+            clickedPin = clickedInputPin || clickedOutputPin;
+
             if (!clickedPin && isWithinObject(mouseX, mouseY, obj)) {
                 hit = true;
                 clickedObject = obj;
@@ -202,7 +231,6 @@ void handleDragAndDrop(const SDL_Event* event) {
         if (!selectionRectActive) {
             for (const auto obj : selectedObjects) {
                 if (obj->dragging) {
-                    // obj->moved = true;
                     obj->pos.x = event->motion.x - obj->offsetX;
                     obj->pos.y = event->motion.y - obj->offsetY;
                 }
@@ -249,49 +277,102 @@ void handleDragAndDrop(const SDL_Event* event) {
                 // Check for pins
                 // This assumes that the object is not rotated.
 
-                for (int pin = 0; pin < obj->inputPinPos.size(); ++pin) {
-                    SDL_Log("Checking pin at (%f, %f)", obj->inputPinPos[pin].x, obj->inputPinPos[pin].y);
+                if (clickedOutputPin) {
+                    for (int pin = 0; pin < obj->inputPinPos.size(); ++pin) {
+                        SDL_Log("Checking pin at (%f, %f)", obj->inputPinPos[pin].x, obj->inputPinPos[pin].y);
 
 
-                    if (mouseX >= obj->pos.x + (obj->inputPinPos[pin].x * obj->scale) - 20 &&
-                        mouseX <= obj->pos.x + (obj->inputPinPos[pin].x * obj->scale) + 20 &&
-                        mouseY >= obj->pos.y + (obj->inputPinPos[pin].y * obj->scale) - 20 &&
-                        mouseY <= obj->pos.y + (obj->inputPinPos[pin].y * obj->scale) + 20) {
-                        SDL_Log("Snapped to pin\n\n");
+                        if (mouseX >= obj->pos.x + (obj->inputPinPos[pin].x * obj->scale) - 20 &&
+                            mouseX <= obj->pos.x + (obj->inputPinPos[pin].x * obj->scale) + 20 &&
+                            mouseY >= obj->pos.y + (obj->inputPinPos[pin].y * obj->scale) - 20 &&
+                            mouseY <= obj->pos.y + (obj->inputPinPos[pin].y * obj->scale) + 20) {
+                            SDL_Log("Snapped to pin\n\n");
 
-                        // Check if the user is trying to connect to the same object
-                        // clickedObject is the wire, so the actual object is the first input pin
-                        if (std::find(clickedObject->inputPins[0].begin(), clickedObject->inputPins[0].end(), obj) != clickedObject->inputPins[0].end()) {
-                            SDL_Log("Clicked object is the same as the object being snapped to, not creating a new connection.");
+                            // Check if the user is trying to connect to the same object
+                            // clickedObject is the wire, so the actual object is the first input pin
+                            if (std::ranges::find(clickedObject->inputPins[0], obj) != clickedObject->inputPins[0].end()) {
+                                SDL_Log("Clicked object is the same as the object being snapped to, not creating a new connection.");
+                                clickedPin = false;
+                                clickedOutputPin = false;
+                                selectedObjects.clear();
+                                break;
+                            }
+
+                            if (tmpFakeObject != nullptr) {
+                                delete tmpFakeObject;
+                                tmpFakeObject = nullptr;
+                            }
+
+                            Object::connect(clickedObject, obj, 0, pin);
+
                             clickedPin = false;
+                            clickedOutputPin = false;
                             selectedObjects.clear();
-                            break;
+                            snapped = true;
                         }
+                    }
+                } else if (clickedInputPin) {
+                    for (int pin = 0; pin < obj->outputPinPos.size(); ++pin) {
+                        SDL_Log("Checking pin at (%f, %f)", obj->outputPinPos[pin].x, obj->outputPinPos[pin].y);
 
-                        if (tmpFakeObject != nullptr) {
-                            delete tmpFakeObject;
-                            tmpFakeObject = nullptr;
-                        }
 
-                        Object::connect(clickedObject, obj, 0, pin);
+                        if (mouseX >= obj->pos.x + (obj->outputPinPos[pin].x * obj->scale) - 20 &&
+                            mouseX <= obj->pos.x + (obj->outputPinPos[pin].x * obj->scale) + 20 &&
+                            mouseY >= obj->pos.y + (obj->outputPinPos[pin].y * obj->scale) - 20 &&
+                            mouseY <= obj->pos.y + (obj->outputPinPos[pin].y * obj->scale) + 20) {
+                            SDL_Log("Snapped to pin\n\n");
 
-                        clickedPin = false;
-                        selectedObjects.clear();
-                        snapped = true;
+                            // Check if the user is trying to connect to the same object
+                            // clickedObject is the wire, so the actual object is the first input pin
+                            if (std::ranges::find(clickedObject->outputPins[0], obj) != clickedObject->outputPins[0].end()) {
+                                SDL_Log("Clicked object is the same as the object being snapped to, not creating a new connection.");
+                                clickedPin = false;
+                                clickedInputPin = false;
+                                selectedObjects.clear();
+                                break;
+                            }
+
+                            if (tmpFakeObject != nullptr) {
+                                delete tmpFakeObject;
+                                tmpFakeObject = nullptr;
+                            }
+
+                            Object::connect(obj, clickedObject, pin, 0);
+
+                            clickedPin = false;
+                            clickedInputPin = false;
+                            selectedObjects.clear();
+                            snapped = true;
+                            }
                     }
                 }
             }
 
             if (!snapped) {
-                // We assume that the wire's input and output pins are only connected to one object
-                for (auto &outputPins : clickedObject->inputPins[0][0]->outputPins) {
-                    std::erase(outputPins, clickedObject);
+                SDL_Log("Didn't snap to any pin.");
+                if (clickedOutputPin) {
+                    SDL_Log("Had clicked output pin.");
+                    // We assume that the wire's input and output pins are only connected to one object
+                    for (auto &outputPins : clickedObject->inputPins[0][0]->outputPins) {
+                        std::erase(outputPins, clickedObject);
+                    }
+                    Object *tmpObj = clickedObject->outputPins[0][0];
+                    delete clickedObject->outputPins[0][0];
+                    std::erase(clickedObject->outputPins[0], tmpObj);
+                    delete clickedObject;
+                    clickedObject = nullptr;
+                } else if (clickedInputPin) {
+                    SDL_Log("Had clicked input pin.");
+                    // We assume that the wire's input and output pins are only connected to one object
+                    for (auto &inputPins : clickedObject->outputPins[0][0]->inputPins) {
+                        std::erase(inputPins, clickedObject);
+                    }
+                    Object *tmpObj = clickedObject->inputPins[0][0];
+                    delete clickedObject->inputPins[0][0];
+                    std::erase(clickedObject->inputPins[0], tmpObj);
+                    delete clickedObject;
+                    clickedObject = nullptr;
                 }
-                Object *tmpObj = clickedObject->outputPins[0][0];
-                delete clickedObject->outputPins[0][0];
-                std::erase(clickedObject->outputPins[0], tmpObj);
-                delete clickedObject;
-                clickedObject = nullptr;
             }
         }
 
@@ -347,7 +428,6 @@ void handleDragAndDrop(const SDL_Event* event) {
             for (const auto obj : objects) {
                 obj->selected = false;
                 obj->dragging = false;
-                // obj->moved = false;
             }
         }
         else if (selectionRectActive) {
@@ -355,6 +435,8 @@ void handleDragAndDrop(const SDL_Event* event) {
         }
 
         clickedPin = false;
+        clickedOutputPin = false;
+        clickedInputPin = false;
         break;
     default:
         break;
